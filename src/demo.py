@@ -142,52 +142,244 @@ def prep_flat_image(X, y):
     tensor_X = torch.from_numpy(flat_X.astype(np.float32))
 
     # Turn labels into class vectors
-    num_classes = np.unique(y_train).shape[0]
+    num_classes = np.unique(y).shape[0]
     tensor_y = torch.as_tensor(y, dtype = torch.long)
     oh_y = nn.functional.one_hot(tensor_y, num_classes = num_classes)
+    oh_y = oh_y.to(torch.float32)
     
     # Yield images
     for image, label in zip(tensor_X, oh_y):
         yield image, label
 
 
-
 class CustomIterDataset(IterableDataset):
     '''Class to create custom iterable dataset from protein embedding
     '''
-    def __init__(self, dataframe, X_path, y_path):
+    def __init__(self, X_path, y_path):
         super(CustomIterDataset, self).__init__()
-        # `dataframe` is a dataframe with PDB IDs and other PDB stats
-        self.dataframe = dataframe
         self.X_path = X_path  # X
         self.y_path = y_path  # Y
 
     def __len__(self):
-        return len(self.dataframe)
+        return len(self.X_path)
 
     def __iter__(self):
         worker_info = torch.utils.data.get_worker_info()
         if worker_info is None:
-                return prep_flat_image(self.dataframe, self.X_path, self.y_path)
+                return prep_flat_image(self.X_path, self.y_path)
         else: # in a worker process
             # split workload
             worker_id = worker_info.id
             worker_total_num = worker_info.num_workers
             
-            sub_df = np.array_split(self.dataframe, worker_total_num)
+            sub_X = np.array_split(self.X_path, worker_total_num)
+            sub_y = np.array_split(self.y_path, worker_total_num)
 
             #Add multiworker functionality and sampling from all replicates option
-            return prep_flat_image(sub_df[worker_id], self.X_path, self.y_path)
+            return prep_flat_image(sub_X[worker_id], sub_y[worker_id])
 
 
 
 # train, validation and test function
 
+def train(model, train_loader, loss_fn, optimizer, epoch):
+    '''Train function for the model. 
+
+    Arguments
+    ---
+    model : nn.Module descendant
+        Model through which training data is passed
+    train_loader : DataLoader
+        Training data with features and labels
+    loss_fn : function
+        Method of loss calculation
+    optimizer : function (taken using torch.optim)
+        Optimisation method
+    epoch : int
+        Number of passes through the network
+
+    Returns
+    ---
+    epoch_loss : ?
+        Information on loss (loss vector ?)
+    '''
+    model.train()
+
+    train_loss = 0
+    counter = 0
+
+    confusion_matrices = []
+
+    all_true_classes = []
+    all_pred_classes = []
+
+    labels = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+
+    with tqdm(train_loader, total=len(train_loader), unit="batch") as tepoch:
+        for X, y in tepoch:
+            counter += 1
+            tepoch.set_description(f"Epoch {epoch}")
+
+            #Send the input to the device
+            X, y = X.to(device), y.to(device)
+
+            #Compute prediction and loss
+            pred = model(X)
+
+            # Loss calculation
+            loss = torch.sum(loss_fn(pred, y))
+
+            #Backpropagation
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            train_loss += loss.item()
+        
+            # Batch metrics - first detach vectors
+            pred = pred.detach().cpu().numpy()
+            y = y.detach().cpu().numpy()
+
+            class_preds = np.argmax(pred, axis = 1)
+            true = np.argmax(y, axis = 1)
+
+            # Save class information     
+            all_true_classes.extend(true)
+            all_pred_classes.extend(class_preds)
+           
+            #Progres pbar
+            postfix = {}
+            postfix["Train: loss"] = f"{train_loss / counter:.5f}"
+            tepoch.set_postfix(postfix)
+        
+        #Loss and protein metrics
+        epoch_loss = train_loss / counter
+
+        overall_conf_matrix = confusion_matrix(all_true_classes, all_pred_classes)
+        overall_performance = classification_report(all_true_classes, all_pred_classes, 
+                                                    target_names = labels, zero_division=0.0)
+
+        #Prints
+        print(f"\n Training performance across images : \n")
+        print(overall_performance)
+    
+    return epoch_loss
+
+
+def validate(model, val_loader, loss_fn, epoch):
+    '''Train function for the model. 
+
+    Arguments
+    ---
+    model : nn.Module descendant
+        Model through which training data is passed
+    val_loader : DataLoader
+        Validation data with features and labels
+    loss_fn : function
+        Method of loss calculation
+    optimizer : function (taken using torch.optim)
+        Optimisation method
+    epoch : int
+        Number of passes through the network
+
+    Returns
+    ---
+    epoch_loss : ?
+        Information on loss (loss vector ?)
+    '''
+    model.eval()
+
+    val_loss = 0
+    counter = 0
+
+    confusion_matrices = []
+
+    all_true_classes = []
+    all_pred_classes = []
+
+    labels = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+
+    with tqdm(val_loader, total=len(val_loader), unit="batch") as tepoch:
+        for X, y in tepoch:
+            counter += 1
+            tepoch.set_description(f"Epoch {epoch}")
+
+            #Send the input to the device
+            X, y = X.to(device), y.to(device)
+
+            #Compute prediction and loss
+            pred = model(X)
+
+            # Loss calculation
+            loss = torch.sum(loss_fn(pred, y))
+            val_loss += loss.item()
+        
+            # Batch metrics - first detach vectors
+            pred = pred.detach().cpu().numpy()
+            y = y.detach().cpu().numpy()
+
+            class_preds = np.argmax(pred, axis = 1)
+            true = np.argmax(y, axis = 1)
+
+            # Save class information     
+            all_true_classes.extend(true)
+            all_pred_classes.extend(class_preds)
+           
+            #Progres pbar
+            postfix = {}
+            postfix["Validation: loss"] = f"{val_loss / counter:.5f}"
+            tepoch.set_postfix(postfix)
+        
+        #Loss and protein metrics
+        epoch_loss = val_loss / counter
+
+        overall_conf_matrix = confusion_matrix(all_true_classes, all_pred_classes)
+        overall_performance = classification_report(all_true_classes, all_pred_classes, 
+                                                    target_names = labels, zero_division=0.0)
+
+        #Prints
+        print(f"\n Validation performance across images : \n")
+        print(overall_performance)
+    
+    return epoch_loss
 
 
 
 
 # Fit function
+
+class EarlyStopping():
+    """
+    Early stopping to stop the training when the loss does not improve after
+    certain epochs.
+    """
+    def __init__(self, patience=10, min_delta=0):
+        """
+        :param patience: how many epochs to wait before stopping when loss is
+               not improving
+        :param min_delta: minimum difference between new loss and old loss for
+               new loss to be considered as an improvement
+        """
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.best_loss = None
+        self.early_stop = False
+
+    def __call__(self, val_loss):
+        if self.best_loss == None:
+            self.best_loss = val_loss
+        elif self.best_loss - val_loss > self.min_delta:
+            self.best_loss = val_loss
+            # reset counter if validation loss improves
+            self.counter = 0
+        elif self.best_loss - val_loss < self.min_delta:
+            self.counter += 1
+            print(f"[INFO]: Early stopping counter - {self.counter} of {self.patience}")
+            if self.counter >= self.patience:
+                print('[INFO]: Early stopping')
+                self.early_stop = True
+
 
 def fit(epochs, X_train, y_train, X_val, y_val, X_test, y_test, loss_fn, save_loc, early_stopping = True):
     '''Function to load data and fit model for a set number of epochs and
@@ -230,11 +422,11 @@ def fit(epochs, X_train, y_train, X_val, y_val, X_test, y_test, loss_fn, save_lo
     val_loss_vector = []
     
 
-    test_dataset = CustomIterDataset_Local(df_test, path)
+    test_dataset = CustomIterDataset(X_test, y_test)
     t_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
 
     
-    model = CONV_2Class(embd_dim).to(device)
+    model = Base().to(device)
 
     # Set optimizer based on model parameters
     lr = LR
@@ -244,9 +436,8 @@ def fit(epochs, X_train, y_train, X_val, y_val, X_test, y_test, loss_fn, save_lo
     # Train model for set number of epochs
     for epoch in range(epochs):
         #Create the datasets and dataloaders for training with shuffle each step
-        df_learn = df_learn.sample(frac = 1)     #Shuffle of dataframe
-        train_data = CustomIterDataset(df_learn, path)
-        val_data = CustomIterDataset(df_val, path)
+        train_data = CustomIterDataset(X_train, y_train)
+        val_data = CustomIterDataset(X_val, y_val)
         train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
         val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
         train_loss = train(model, train_loader, loss_fn, optimizer, epoch)
@@ -259,25 +450,39 @@ def fit(epochs, X_train, y_train, X_val, y_val, X_test, y_test, loss_fn, save_lo
             if early_stopping.early_stop:
                 break
 
-    #test_loss, predictions, real_vals, pdbs = test(model, t_loader, loss_fn, epochs, path)
-    loss_vectors.append(loss_vector)
-    val_loss_vectors.append(val_loss_vector)
-    #predictions_across_embds.append(predictions)
+    test_loss, predictions, real_vals = test(model, t_loader, loss_fn, epochs, path)
 
     # Save weights of each model
-    model_name = f'{path[29:]}_{CURRENT_CV}'
-    save_model(epochs, model, optimizer, loss_fn, save_loc, model_name)
+    # model_name = f'{path[29:]}_{CURRENT_CV}'
+    # save_model(epochs, model, optimizer, loss_fn, save_loc, model_name)
     
-    #writer.close()
     end = time.time()
-
-    #Save the trained model weights for a final time
-    #save_model(epochs, model, optimizer, loss_fn)
     
     print(f"Training time: {(end-start)/60:.3f} minutes\n")
     # print(len(predictions_across_embds))
-    print("Ensemble model complete")
-    return loss_vectors, val_loss_vectors #, predictions_across_embds, real_vals, pdbs
+    print("Model complete")
+    return loss_vector, val_loss_vector #, predictions_across_embds, real_vals, pdbs
+
+
+# Models
+
+class Base(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+        self.stack = nn.Sequential(
+            nn.Linear(28*28, 512),
+            nn.ReLU(),
+            nn.Linear(512, 10),
+        )
+        self.softmax = torch.nn.Softmax(dim = 1)
+
+    def forward(self, x):
+        
+        out = self.stack(x)
+        out = self.softmax(out)
+
+        return out
 
 
 
@@ -296,7 +501,23 @@ if __name__ == '__main__':
 
     tx, ty, vx, vy, tex, tey = train_validation_test(X_train, y_train, X_test, y_test)
 
-    # 
+    # Computation device
+
+    device = ("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Computation device: {device}\n")
+
+
+    # Set hyperparameters
+    PATIENCE = 5
+    BATCH_SIZE = 128
+    NUM_WORKERS = 4
+    EPOCHS = 5
+    LR = 0.001
+    LOSS_FN = nn.CrossEntropyLoss(reduction = 'none')
+
+    # Fit model
+    fit(EPOCHS, tx, ty, vx, vy, tex, tey, LOSS_FN, None, early_stopping = True)
+
 
 
 
