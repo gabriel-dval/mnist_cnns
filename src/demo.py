@@ -324,11 +324,6 @@ def validate(model, val_loader, loss_fn, epoch):
             # Save class information     
             all_true_classes.extend(true)
             all_pred_classes.extend(class_preds)
-           
-            #Progres pbar
-            postfix = {}
-            postfix["Validation: loss"] = f"{val_loss / counter:.5f}"
-            tepoch.set_postfix(postfix)
         
         #Loss and protein metrics
         epoch_loss = val_loss / counter
@@ -344,7 +339,77 @@ def validate(model, val_loader, loss_fn, epoch):
     return epoch_loss
 
 
+def test(model, test_loader, loss_fn, epoch):
+    '''Train function for the model. 
 
+    Arguments
+    ---
+    model : nn.Module descendant
+        Model through which training data is passed
+    val_loader : DataLoader
+        Validation data with features and labels
+    loss_fn : function
+        Method of loss calculation
+    optimizer : function (taken using torch.optim)
+        Optimisation method
+    epoch : int
+        Number of passes through the network
+
+    Returns
+    ---
+    epoch_loss : ?
+        Information on loss (loss vector ?)
+    '''
+    model.eval()
+
+    val_loss = 0
+    counter = 0
+
+    confusion_matrices = []
+
+    all_true_classes = []
+    all_pred_classes = []
+
+    labels = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+
+    with tqdm(test_loader, total=len(test_loader), unit="batch") as tepoch:
+        for X, y in tepoch:
+            counter += 1
+            tepoch.set_description(f"Epoch {epoch}")
+
+            #Send the input to the device
+            X, y = X.to(device), y.to(device)
+
+            #Compute prediction and loss
+            pred = model(X)
+
+            # Loss calculation
+            loss = torch.sum(loss_fn(pred, y))
+            test_loss += loss.item()
+        
+            # Batch metrics - first detach vectors
+            pred = pred.detach().cpu().numpy()
+            y = y.detach().cpu().numpy()
+
+            class_preds = np.argmax(pred, axis = 1)
+            true = np.argmax(y, axis = 1)
+
+            # Save class information     
+            all_true_classes.extend(true)
+            all_pred_classes.extend(class_preds)
+        
+        #Loss and protein metrics
+        epoch_loss = val_loss / counter
+
+        overall_conf_matrix = confusion_matrix(all_true_classes, all_pred_classes)
+        overall_performance = classification_report(all_true_classes, all_pred_classes, 
+                                                    target_names = labels, zero_division=0.0)
+
+        #Prints
+        print(f"\n Validation performance across images : \n")
+        print(overall_performance)
+    
+    return epoch_loss, all_pred_classes, all_true_classes
 
 # Fit function
 
