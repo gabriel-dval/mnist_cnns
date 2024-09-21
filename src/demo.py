@@ -89,20 +89,20 @@ def train_validation_test(X_train, y_train, X_test, y_test, val_proportion = 0.1
     
     Args
     ---
-    X_train : 
-    y_train :
-    X_test : 
-    y_test : 
-    val_proportion
+    X_train : array
+    y_train : array
+    X_test : array
+    y_test : array
+    val_proportion : float
 
     Returns
     ---
-    X_tr :
-    y_tr :
-    X_val :
-    y_val :
-    X_test : 
-    y_test : 
+    X_tr : array
+    y_tr : array
+    X_val : array
+    y_val : array
+    X_test : array
+    y_test : array
     '''
     # Shuffle train data set
     ns =  X_train.shape[0]
@@ -181,12 +181,99 @@ class CustomIterDataset(IterableDataset):
 
 
 
-# Train, Validation and Test function
+# train, validation and test function
+
 
 
 
 
 # Fit function
+
+def fit(epochs, X_train, y_train, X_val, y_val, X_test, y_test, loss_fn, save_loc, early_stopping = True):
+    '''Function to load data and fit model for a set number of epochs and
+    a set number of protein embeddings (hence the double for loop).
+
+    Arguments
+    ---
+    epochs : int
+        Number of passes through network
+    df_learn : pd.Dataframe
+        Training data
+    df_val : pd.Dataframe
+        Validation data
+    df_test : pd. Dataframe
+        Testing data
+    loss_fn : function
+        Loss function to be computed
+
+    Returns
+    ---
+    loss_vectors : list of lists
+        Lists of loss values for each epoch
+    y_preds : list of lists
+        TBC
+    '''
+    start = time.time()
+
+    # Initialise patience
+    if early_stopping:
+        print("[INFO]: Initializing early stopping")
+        early_stopping = EarlyStopping(patience=PATIENCE, min_delta=0)
+
+
+    # Create test set.
+    loss_vector = []
+    val_loss_vector = []
+    
+
+    test_dataset = CustomIterDataset_Local(df_test, path)
+    t_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
+
+    
+    model = CONV_2Class(embd_dim).to(device)
+
+    # Set optimizer based on model parameters
+    lr = LR
+    optimizer = optim.Adam(model.parameters(), 
+                        lr=lr, amsgrad=False) 
+
+    # Train model for set number of epochs
+    for epoch in range(epochs):
+        #Create the datasets and dataloaders for training with shuffle each step
+        df_learn = df_learn.sample(frac = 1)     #Shuffle of dataframe
+        train_data = CustomIterDataset(df_learn, path)
+        val_data = CustomIterDataset(df_val, path)
+        train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
+        val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
+        train_loss = train(model, train_loader, loss_fn, optimizer, epoch)
+        val_loss = validate(model, val_loader, loss_fn, epoch)
+        loss_vector.append(train_loss)
+        val_loss_vector.append(val_loss)
+
+        if early_stopping:
+            early_stopping(val_loss)
+            if early_stopping.early_stop:
+                break
+
+    #test_loss, predictions, real_vals, pdbs = test(model, t_loader, loss_fn, epochs, path)
+    loss_vectors.append(loss_vector)
+    val_loss_vectors.append(val_loss_vector)
+    #predictions_across_embds.append(predictions)
+
+    # Save weights of each model
+    model_name = f'{path[29:]}_{CURRENT_CV}'
+    save_model(epochs, model, optimizer, loss_fn, save_loc, model_name)
+    
+    #writer.close()
+    end = time.time()
+
+    #Save the trained model weights for a final time
+    #save_model(epochs, model, optimizer, loss_fn)
+    
+    print(f"Training time: {(end-start)/60:.3f} minutes\n")
+    # print(len(predictions_across_embds))
+    print("Ensemble model complete")
+    return loss_vectors, val_loss_vectors #, predictions_across_embds, real_vals, pdbs
 
 
 
@@ -205,10 +292,9 @@ if __name__ == '__main__':
 
     tx, ty, vx, vy, tex, tey = train_validation_test(X_train, y_train, X_test, y_test)
 
-    print(tx.shape)
-    print(ty.shape)
-    print(vx.shape)
-    print(vy.shape)
+    # 
+
+
 
    
 
