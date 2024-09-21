@@ -197,14 +197,18 @@ def fit(epochs, X_train, y_train, X_val, y_val, X_test, y_test, loss_fn, save_lo
     ---
     epochs : int
         Number of passes through network
-    df_learn : pd.Dataframe
-        Training data
-    df_val : pd.Dataframe
-        Validation data
-    df_test : pd. Dataframe
-        Testing data
+    X_train : array
+    y_train : array
+    X_val : array
+    y_val : array
+    X_test : array
+    y_test : array
     loss_fn : function
         Loss function to be computed
+    save_loc : str
+        Where should the results be saved ?
+    early_stopping : boolean
+        Using early stopping ?
 
     Returns
     ---
