@@ -81,6 +81,33 @@ def view_images(X_path, y_path):
     plt.show()
 
 
+# Plotting functions
+
+def plot_loss_function(figure_path, index, loss_vector, val_loss_vector):
+    '''Basic function to plot trajectory of loss
+
+    Arguments
+    ---
+    loss_vector : list
+        Values of loss through iterations of model
+
+    Return
+    ---
+    Nothing - plots function
+    '''
+    time = dt.date.today()
+
+    plt.figure(figsize = (10, 6))
+    plt.plot(list(range(len(loss_vector))), loss_vector, color = 'red')
+    plt.plot(list(range(len(val_loss_vector))), val_loss_vector, color = 'blue')
+    plt.xlabel("Number of epochs")
+    plt.ylabel("Loss value")
+    plt.title(f'Loss function - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
+    # plt.savefig(f"{figure_path}/{index}_{time}_{EPOCHS}epochs_CONV_LOSS")
+    plt.show()
+
+
+
 # Custom Dataset --------------------------------------------------------------------------
 
 def train_validation_test(X_train, y_train, X_test, y_test, val_proportion = 0.125):
@@ -565,10 +592,12 @@ if __name__ == '__main__':
     LOSS_FN = nn.CrossEntropyLoss(reduction = 'none')
 
     # Fit model
-    fit(EPOCHS, tx, ty, vx, vy, tex, tey, LOSS_FN, None, early_stopping = True)
+    loss_vector, val_loss_vector = fit(EPOCHS, tx, ty, vx, vy, tex, tey, LOSS_FN, None, early_stopping = True)
 
 
     # Plots - will plot loss function, confusion matrix and maybe ROC
+    plot_loss_function(None, None, loss_vector, val_loss_vector)
+    
 
 
 
