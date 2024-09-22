@@ -230,7 +230,7 @@ def train(model, train_loader, loss_fn, optimizer, epoch):
             loss = torch.sum(loss_fn(pred, y))
 
             #Backpropagation
-            optimizer.zero_grad()
+            optimizer.zero_grad(set_to_none = True)
             loss.backward()
             optimizer.step()
 
@@ -255,9 +255,9 @@ def train(model, train_loader, loss_fn, optimizer, epoch):
         #Loss and protein metrics
         epoch_loss = train_loss / counter
 
-        overall_conf_matrix = confusion_matrix(all_true_classes, all_pred_classes)
-        overall_performance = classification_report(all_true_classes, all_pred_classes, 
-                                                    target_names = labels, zero_division=0.0)
+        # overall_conf_matrix = confusion_matrix(all_true_classes, all_pred_classes)
+        # overall_performance = classification_report(all_true_classes, all_pred_classes, 
+        #                                             target_names = labels, zero_division=0.0)
         ba = balanced_accuracy_score(all_true_classes, all_pred_classes)
 
 
@@ -329,9 +329,9 @@ def validate(model, val_loader, loss_fn, epoch):
         #Loss and protein metrics
         epoch_loss = val_loss / counter
 
-        overall_conf_matrix = confusion_matrix(all_true_classes, all_pred_classes)
-        overall_performance = classification_report(all_true_classes, all_pred_classes, 
-                                                    target_names = labels, zero_division=0.0)
+        # overall_conf_matrix = confusion_matrix(all_true_classes, all_pred_classes)
+        # overall_performance = classification_report(all_true_classes, all_pred_classes, 
+        #                                             target_names = labels, zero_division=0.0)
         ba = balanced_accuracy_score(all_true_classes, all_pred_classes)
 
         #Prints
@@ -400,9 +400,9 @@ def test(model, test_loader, loss_fn, epoch):
         #Loss and protein metrics
         epoch_loss = val_loss / counter
 
-        overall_conf_matrix = confusion_matrix(all_true_classes, all_pred_classes)
-        overall_performance = classification_report(all_true_classes, all_pred_classes, 
-                                                    target_names = labels, zero_division=0.0)
+        # overall_conf_matrix = confusion_matrix(all_true_classes, all_pred_classes)
+        # overall_performance = classification_report(all_true_classes, all_pred_classes, 
+        #                                             target_names = labels, zero_division=0.0)
         ba = balanced_accuracy_score(all_true_classes, all_pred_classes)
 
 
@@ -576,7 +576,7 @@ if __name__ == '__main__':
     # Set hyperparameters
     PATIENCE = 5
     BATCH_SIZE = 128
-    NUM_WORKERS = 4
+    NUM_WORKERS = 8
     EPOCHS = 5
     LR = 0.001
     LOSS_FN = nn.CrossEntropyLoss(reduction = 'none')
