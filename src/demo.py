@@ -133,14 +133,14 @@ def prep_flat_image(X, y):
         List or array of equivalent labels
     '''
     # Flatten images and turn into tensors
-    pixels = X.shape[1] * X.shape[2] #784
-    flat_X = X.reshape(X.shape[0], pixels)
+    pixels = 28 * 28 # Image dimensions
+    flat_X = X.reshape(X.shape[-1], pixels)
     tensor_X = torch.from_numpy(flat_X.astype(np.float32))
 
     # Turn labels into class vectors
     tensor_y = torch.as_tensor(y, dtype = torch.long)
     oh_y = nn.functional.one_hot(tensor_y, num_classes = 10)
-    oh_y = oh_y.to(torch.float32)
+    #oh_y = oh_y.to(torch.float32)
     
     # Yield images
     return tensor_X, oh_y
@@ -234,6 +234,8 @@ def train(model, train_loader, loss_fn, optimizer, epoch):
 
             #Compute prediction and loss
             pred = model(X)
+            print(pred)
+            print(y)
 
             # Loss calculation
             loss = torch.sum(loss_fn(pred, y))
