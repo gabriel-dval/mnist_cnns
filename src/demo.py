@@ -26,7 +26,7 @@ from tqdm.autonotebook import tqdm
 
 from sklearn.metrics import confusion_matrix, classification_report, ConfusionMatrixDisplay, balanced_accuracy_score
 from sklearn.utils.class_weight import compute_class_weight, compute_sample_weight
-from sklearn.metrics import roc_curve, RocCurveDisplay, PrecisionRecallDisplay
+from sklearn.metrics import roc_curve, RocCurveDisplay, PrecisionRecallDisplay, matthews_corrcoef
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -268,11 +268,13 @@ def train(model, train_loader, loss_fn, optimizer, epoch):
         # overall_performance = classification_report(all_true_classes, all_pred_classes, 
         #                                             target_names = labels, zero_division=0.0)
         ba = balanced_accuracy_score(all_true_classes, all_pred_classes)
+        mc = matthews_corrcoef(all_true_classes, all_pred_classes)
 
 
         #Prints
         print(f"\n Training performance across images : \n")
         print(f"Balanced Accuracy Score : {ba}")
+        print(f"Matthews CC : {mc}")
     
     return epoch_loss
 
@@ -342,11 +344,15 @@ def validate(model, val_loader, loss_fn, epoch):
         # overall_performance = classification_report(all_true_classes, all_pred_classes, 
         #                                             target_names = labels, zero_division=0.0)
         ba = balanced_accuracy_score(all_true_classes, all_pred_classes)
+        mc = matthews_corrcoef(all_true_classes, all_pred_classes)
+    
+        
 
         #Prints
         print(f"\n Validation performance across images : \n")
         print(f"Balanced Accuracy Score : {ba}")
-    
+        print(f"Matthews CC : {mc}")
+        
     return epoch_loss
 
 
@@ -413,11 +419,13 @@ def test(model, test_loader, loss_fn, epoch):
         # overall_performance = classification_report(all_true_classes, all_pred_classes, 
         #                                             target_names = labels, zero_division=0.0)
         ba = balanced_accuracy_score(all_true_classes, all_pred_classes)
+        mc = matthews_corrcoef(all_true_classes, all_pred_classes)
 
 
         #Prints
         print(f"\n Test performance across images : \n")
         print(f"Balanced Accuracy Score : {ba}")
+        print(f"Matthews CC : {mc}")
     
     return epoch_loss, all_pred_classes, all_true_classes
 
