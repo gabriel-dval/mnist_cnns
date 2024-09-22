@@ -99,12 +99,14 @@ def plot_loss_function(figure_path, index, loss_vector, val_loss_vector):
     time = dt.date.today()
 
     plt.figure(figsize = (10, 6))
-    plt.plot(list(range(len(loss_vector))), loss_vector, color = 'red')
-    plt.plot(list(range(len(val_loss_vector))), val_loss_vector, color = 'blue')
+    plt.plot(list(range(len(loss_vector))), loss_vector, color = 'red', label = 'Training Loss')
+    plt.plot(list(range(len(val_loss_vector))), val_loss_vector, color = 'blue', label = 'Validation loss',
+             linestyle = 'dashed')
     plt.xlabel("Number of epochs")
     plt.ylabel("Loss value")
     plt.title(f'Loss function - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
-    plt.savefig(f"{figure_path}/{index}_BS{BATCH_SIZE}_LR{LR}")
+    plt.legend(loc = 'upper right')
+    plt.savefig(f"{figure_path}/{index}_BS{BATCH_SIZE}_LR{LR}.png")
 
 
 
@@ -424,7 +426,7 @@ def test(model, test_loader, loss_fn, epoch, figure_path):
         plt.figure(figsize = (10, 6))
         sns.heatmap(overall_conf_matrix, annot = True)  
         plt.title(f'CM - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
-        plt.savefig(f"{figure_path}/ConfusionMatrix_BS{BATCH_SIZE}_LR{LR}")
+        plt.savefig(f"{figure_path}/ConfusionMatrix_BS{BATCH_SIZE}_LR{LR}.png")
 
 
         #Prints
