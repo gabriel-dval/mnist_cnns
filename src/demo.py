@@ -81,7 +81,7 @@ def view_images(X_path, y_path):
     plt.show()
 
 
-# Custom Dataset 
+# Custom Dataset --------------------------------------------------------------------------
 
 def train_validation_test(X_train, y_train, X_test, y_test, val_proportion = 0.125):
     '''Simple function to create our train, validation and test sets
@@ -159,8 +159,8 @@ class MNISTCustom(Dataset):
         return prep_flat_image(image, label)
 
 
+# train, validation and test function ------------------------------------------------------
 
-# train, validation and test function
 
 def train(model, train_loader, loss_fn, optimizer, epoch):
     '''Train function for the model. 
@@ -392,7 +392,8 @@ def test(model, test_loader, loss_fn, epoch):
     
     return epoch_loss, all_pred_classes, all_true_classes
 
-# Fit function
+
+# Fit function -----------------------------------------------------------------------------
 
 class EarlyStopping():
     """
@@ -476,8 +477,8 @@ def fit(epochs, X_train, y_train, X_val, y_val, X_test, y_test, loss_fn, save_lo
 
     # Set optimizer based on model parameters
     lr = LR
-    optimizer = optim.Adam(model.parameters(), 
-                        lr=lr, amsgrad=False) 
+    optimizer = optim.RMSprop(model.parameters(), 
+                        lr=lr) 
 
     # Train model for set number of epochs
     for epoch in range(epochs):
@@ -510,16 +511,19 @@ def fit(epochs, X_train, y_train, X_val, y_val, X_test, y_test, loss_fn, save_lo
     return loss_vector, val_loss_vector #, predictions_across_embds, real_vals, pdbs
 
 
-# Models
+# Models ------------------------------------------------------------------------------------
 
 class Base(nn.Module):
 
     def __init__(self):
         super().__init__()
         self.stack = nn.Sequential(
-            nn.Linear(28*28, 512),
+            nn.Linear(28*28, 256),
             nn.ReLU(),
-            nn.Linear(512, 10),
+            nn.Dropout(0.3),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Linear(128, 10),
         )
         self.softmax = torch.nn.Softmax(dim = 1)
 
@@ -562,6 +566,9 @@ if __name__ == '__main__':
 
     # Fit model
     fit(EPOCHS, tx, ty, vx, vy, tex, tey, LOSS_FN, None, early_stopping = True)
+
+
+    # Plots - will plot loss function, confusion matrix and maybe ROC
 
 
 
