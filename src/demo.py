@@ -258,10 +258,12 @@ def train(model, train_loader, loss_fn, optimizer, epoch):
         overall_conf_matrix = confusion_matrix(all_true_classes, all_pred_classes)
         overall_performance = classification_report(all_true_classes, all_pred_classes, 
                                                     target_names = labels, zero_division=0.0)
+        ba = balanced_accuracy_score(all_true_classes, all_pred_classes)
+
 
         #Prints
         print(f"\n Training performance across images : \n")
-        print(overall_performance)
+        print(f"Balanced Accuracy Score : {ba}")
     
     return epoch_loss
 
@@ -299,10 +301,9 @@ def validate(model, val_loader, loss_fn, epoch):
 
     labels = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
-    with tqdm(val_loader, total=len(val_loader), unit="batch") as tepoch:
-        for X, y in tepoch:
+    with torch.no_grad():
+        for X, y in val_loader:
             counter += 1
-            tepoch.set_description(f"Epoch {epoch}")
 
             #Send the input to the device
             X, y = X.to(device), y.to(device)
@@ -331,10 +332,11 @@ def validate(model, val_loader, loss_fn, epoch):
         overall_conf_matrix = confusion_matrix(all_true_classes, all_pred_classes)
         overall_performance = classification_report(all_true_classes, all_pred_classes, 
                                                     target_names = labels, zero_division=0.0)
+        ba = balanced_accuracy_score(all_true_classes, all_pred_classes)
 
         #Prints
         print(f"\n Validation performance across images : \n")
-        print(overall_performance)
+        print(f"Balanced Accuracy Score : {ba}")
     
     return epoch_loss
 
@@ -365,17 +367,14 @@ def test(model, test_loader, loss_fn, epoch):
     val_loss = 0
     counter = 0
 
-    confusion_matrices = []
-
     all_true_classes = []
     all_pred_classes = []
 
     labels = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
-    with tqdm(test_loader, total=len(test_loader), unit="batch") as tepoch:
-        for X, y in tepoch:
+    with torch.no_grad():
+        for X, y in test_loader:
             counter += 1
-            tepoch.set_description(f"Epoch {epoch}")
 
             #Send the input to the device
             X, y = X.to(device), y.to(device)
@@ -404,10 +403,12 @@ def test(model, test_loader, loss_fn, epoch):
         overall_conf_matrix = confusion_matrix(all_true_classes, all_pred_classes)
         overall_performance = classification_report(all_true_classes, all_pred_classes, 
                                                     target_names = labels, zero_division=0.0)
+        ba = balanced_accuracy_score(all_true_classes, all_pred_classes)
+
 
         #Prints
-        print(f"\n Validation performance across images : \n")
-        print(overall_performance)
+        print(f"\n Test performance across images : \n")
+        print(f"Balanced Accuracy Score : {ba}")
     
     return epoch_loss, all_pred_classes, all_true_classes
 
