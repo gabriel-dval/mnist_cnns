@@ -578,6 +578,11 @@ if __name__ == '__main__':
 
     tx, ty, vx, vy, tex, tey = train_validation_test(X_train, y_train, X_test, y_test)
 
+    unique, counts = np.unique(y_train, return_counts=True)
+    plt.figure(figsize = (10, 6))
+    plt.bar(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], counts)
+    plt.show()
+
     # Computation device
 
     device = ("cuda" if torch.cuda.is_available() else "cpu")
