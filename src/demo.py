@@ -20,7 +20,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence
-from torch.utils.data import IterableDataset, DataLoader
+from torch.utils.data import IterableDataset, DataLoader, Dataset
 
 from tqdm.autonotebook import tqdm
 
@@ -132,28 +132,22 @@ def prep_flat_image(X, y):
     y : iterable
         List or array of equivalent labels
     '''
-    # Little sanity check
-    if len(X) != len(y):
-        raise ValueError('Features and labels do not have the same length')
-    
     # Flatten images and turn into tensors
     pixels = X.shape[1] * X.shape[2] #784
     flat_X = X.reshape(X.shape[0], pixels)
     tensor_X = torch.from_numpy(flat_X.astype(np.float32))
 
     # Turn labels into class vectors
-    num_classes = np.unique(y).shape[0]
     tensor_y = torch.as_tensor(y, dtype = torch.long)
-    oh_y = nn.functional.one_hot(tensor_y, num_classes = num_classes)
+    oh_y = nn.functional.one_hot(tensor_y, num_classes = 10)
     oh_y = oh_y.to(torch.float32)
     
     # Yield images
-    for image, label in zip(tensor_X, oh_y):
-        yield image, label
+    return tensor_X, oh_y
 
 
 class CustomIterDataset(IterableDataset):
-    '''Class to create custom iterable dataset from protein embedding
+    '''Class to create custom iterable dataset
     '''
     def __init__(self, X_path, y_path):
         super(CustomIterDataset, self).__init__()
@@ -175,8 +169,23 @@ class CustomIterDataset(IterableDataset):
             sub_X = np.array_split(self.X_path, worker_total_num)
             sub_y = np.array_split(self.y_path, worker_total_num)
 
-            #Add multiworker functionality and sampling from all replicates option
+            #Add multiworker functionality
             return prep_flat_image(sub_X[worker_id], sub_y[worker_id])
+
+
+class MNISTCustom(Dataset):
+    '''Custom dataset for processing the MNIST images'''
+    def __init__(self, X_path, y_path):
+        self.X_path = X_path  # X
+        self.y_path = y_path  # Y
+    
+    def __len__(self):
+        return len(self.y_path)
+    
+    def __getitem__(self, idx):
+        image = self.X_path[idx, :, :, :]
+        label = self.y_path[idx]
+        return prep_flat_image(image, label)
 
 
 
@@ -488,7 +497,7 @@ def fit(epochs, X_train, y_train, X_val, y_val, X_test, y_test, loss_fn, save_lo
     val_loss_vector = []
     
 
-    test_dataset = CustomIterDataset(X_test, y_test)
+    test_dataset = MNISTCustom(X_test, y_test)
     t_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
 
     
@@ -502,8 +511,8 @@ def fit(epochs, X_train, y_train, X_val, y_val, X_test, y_test, loss_fn, save_lo
     # Train model for set number of epochs
     for epoch in range(epochs):
         #Create the datasets and dataloaders for training with shuffle each step
-        train_data = CustomIterDataset(X_train, y_train)
-        val_data = CustomIterDataset(X_val, y_val)
+        train_data = MNISTCustom(X_train, y_train)
+        val_data = MNISTCustom(X_val, y_val)
         train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
         val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
         train_loss = train(model, train_loader, loss_fn, optimizer, epoch)
@@ -516,7 +525,7 @@ def fit(epochs, X_train, y_train, X_val, y_val, X_test, y_test, loss_fn, save_lo
             if early_stopping.early_stop:
                 break
 
-    test_loss, predictions, real_vals = test(model, t_loader, loss_fn, epochs, path)
+    test_loss, predictions, real_vals = test(model, t_loader, loss_fn, epochs)
 
     # Save weights of each model
     # model_name = f'{path[29:]}_{CURRENT_CV}'
@@ -572,11 +581,10 @@ if __name__ == '__main__':
     device = ("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Computation device: {device}\n")
 
-
     # Set hyperparameters
     PATIENCE = 5
     BATCH_SIZE = 128
-    NUM_WORKERS = 8
+    NUM_WORKERS = 0
     EPOCHS = 5
     LR = 0.001
     LOSS_FN = nn.CrossEntropyLoss(reduction = 'none')
