@@ -104,8 +104,7 @@ def plot_loss_function(figure_path, index, loss_vector, val_loss_vector):
     plt.xlabel("Number of epochs")
     plt.ylabel("Loss value")
     plt.title(f'Loss function - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
-    # plt.savefig(f"{figure_path}/{index}_{time}_{EPOCHS}epochs_CONV_LOSS")
-    plt.show()
+    plt.savefig(f"{figure_path}/{index}_BS{BATCH_SIZE}_LR{LR}")
 
 
 
@@ -356,7 +355,7 @@ def validate(model, val_loader, loss_fn, epoch):
     return epoch_loss
 
 
-def test(model, test_loader, loss_fn, epoch):
+def test(model, test_loader, loss_fn, epoch, figure_path):
     '''Train function for the model. 
 
     Arguments
@@ -420,6 +419,12 @@ def test(model, test_loader, loss_fn, epoch):
         #                                             target_names = labels, zero_division=0.0)
         ba = balanced_accuracy_score(all_true_classes, all_pred_classes)
         mc = matthews_corrcoef(all_true_classes, all_pred_classes)
+
+        # Draw and save confusion matrix
+        plt.figure(figsize = (10, 6))
+        sns.heatmap(overall_conf_matrix, annot = True)  
+        plt.title(f'CM - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
+        plt.savefig(f"{figure_path}/ConfusionMatrix_BS{BATCH_SIZE}_LR{LR}")
 
 
         #Prints
@@ -534,7 +539,7 @@ def fit(epochs, X_train, y_train, X_val, y_val, X_test, y_test, loss_fn, save_lo
             if early_stopping.early_stop:
                 break
 
-    test_loss, predictions, real_vals = test(model, t_loader, loss_fn, epochs)
+    test_loss, predictions, real_vals = test(model, t_loader, loss_fn, epochs, '../results')
 
     # Save weights of each model
     # model_name = f'{path[29:]}_{CURRENT_CV}'
@@ -606,7 +611,7 @@ if __name__ == '__main__':
 
 
     # Plots - will plot loss function, confusion matrix and maybe ROC
-    plot_loss_function(None, None, loss_vector, val_loss_vector)
+    plot_loss_function('../results', 'Loss', loss_vector, val_loss_vector)
     
 
 
