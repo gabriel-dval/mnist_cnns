@@ -29,6 +29,7 @@ from sklearn.utils.class_weight import compute_class_weight, compute_sample_weig
 from sklearn.metrics import roc_curve, RocCurveDisplay, PrecisionRecallDisplay
 
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 # Seed function stolen from Yann --------------------------------------------------------
@@ -190,7 +191,8 @@ class MNISTCustom(Dataset):
 
 
 def train(model, train_loader, loss_fn, optimizer, epoch):
-    '''Train function for the model. 
+    '''Train function for the model. To evaluate the training, multiple different
+    measures are used: Balanced Accuracy, Precision, Recall.
 
     Arguments
     ---
@@ -407,7 +409,7 @@ def test(model, test_loader, loss_fn, epoch):
         #Loss and protein metrics
         epoch_loss = test_loss / counter
 
-        # overall_conf_matrix = confusion_matrix(all_true_classes, all_pred_classes)
+        overall_conf_matrix = confusion_matrix(all_true_classes, all_pred_classes, normalize='true')
         # overall_performance = classification_report(all_true_classes, all_pred_classes, 
         #                                             target_names = labels, zero_division=0.0)
         ba = balanced_accuracy_score(all_true_classes, all_pred_classes)
