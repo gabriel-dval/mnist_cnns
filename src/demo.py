@@ -121,7 +121,6 @@ def train_validation_test(X_train, y_train, X_test, y_test, val_proportion = 0.1
     return X_tr, y_tr, X_val, y_val, X_test, y_test
 
 
-
 def prep_flat_image(X, y):
     '''Function to prepare image dataset
 
@@ -134,44 +133,16 @@ def prep_flat_image(X, y):
     '''
     # Flatten images and turn into tensors
     pixels = 28 * 28 # Image dimensions
-    flat_X = X.reshape(X.shape[-1], pixels)
+    flat_X = X.reshape(pixels)
     tensor_X = torch.from_numpy(flat_X.astype(np.float32))
 
     # Turn labels into class vectors
     tensor_y = torch.as_tensor(y, dtype = torch.long)
     oh_y = nn.functional.one_hot(tensor_y, num_classes = 10)
-    #oh_y = oh_y.to(torch.float32)
+    oh_y = oh_y.to(torch.float32)
     
     # Yield images
     return tensor_X, oh_y
-
-
-class CustomIterDataset(IterableDataset):
-    '''Class to create custom iterable dataset
-    '''
-    def __init__(self, X_path, y_path):
-        super(CustomIterDataset, self).__init__()
-        self.X_path = X_path  # X
-        self.y_path = y_path  # Y
-
-    def __len__(self):
-        return len(self.X_path)
-
-    def __iter__(self):
-        worker_info = torch.utils.data.get_worker_info()
-        if worker_info is None:
-                return prep_flat_image(self.X_path, self.y_path)
-        else: # in a worker process
-            # split workload
-            worker_id = worker_info.id
-            worker_total_num = worker_info.num_workers
-            
-            sub_X = np.array_split(self.X_path, worker_total_num)
-            sub_y = np.array_split(self.y_path, worker_total_num)
-
-            #Add multiworker functionality
-            return prep_flat_image(sub_X[worker_id], sub_y[worker_id])
-
 
 class MNISTCustom(Dataset):
     '''Custom dataset for processing the MNIST images'''
@@ -234,8 +205,6 @@ def train(model, train_loader, loss_fn, optimizer, epoch):
 
             #Compute prediction and loss
             pred = model(X)
-            print(pred)
-            print(y)
 
             # Loss calculation
             loss = torch.sum(loss_fn(pred, y))
@@ -375,7 +344,7 @@ def test(model, test_loader, loss_fn, epoch):
     '''
     model.eval()
 
-    val_loss = 0
+    test_loss = 0
     counter = 0
 
     all_true_classes = []
@@ -409,7 +378,7 @@ def test(model, test_loader, loss_fn, epoch):
             all_pred_classes.extend(class_preds)
         
         #Loss and protein metrics
-        epoch_loss = val_loss / counter
+        epoch_loss = test_loss / counter
 
         # overall_conf_matrix = confusion_matrix(all_true_classes, all_pred_classes)
         # overall_performance = classification_report(all_true_classes, all_pred_classes, 
