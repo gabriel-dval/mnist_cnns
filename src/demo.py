@@ -3,8 +3,6 @@
 All models will be implemented using pytorch
 '''
 
-# Necessary modules
-
 #Import modules
 
 import os
