@@ -69,8 +69,8 @@ def view_images(X_path, y_path):
 
     # Display them
     plt.figure(figsize=[10,10])
-    for i in range (9):    # for first 9 images
-        plt.subplot(3, 3, i+1)
+    for i in range (16):    # for first 16 images
+        plt.subplot(4, 4, i+1)
         plt.xticks([])
         plt.yticks([])
         plt.grid(False)
@@ -597,11 +597,19 @@ if __name__ == '__main__':
     X_test = np.load('../data/test_images.npy')
     y_test = np.load('../data/test_labels.npy')
 
+    view_images('../data/test_images.npy', '../data/test_labels.npy')
+
     tx, ty, vx, vy, tex, tey = train_validation_test(X_train, y_train, X_test, y_test)
 
     # unique, counts = np.unique(tey, return_counts=True)
     # plt.bar(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], counts)
     # plt.show()
+
+    # unique, counts = np.unique(ty, return_counts=True)
+    # plt.bar(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], counts)
+    # plt.show()
+
+
 
     # Computation device
 
@@ -610,18 +618,18 @@ if __name__ == '__main__':
 
     # Set hyperparameters
     PATIENCE = 5
-    BATCH_SIZE = 128
+    BATCH_SIZE = 2048
     NUM_WORKERS = 0
     EPOCHS = 60
-    LR = 0.001
+    LR = 0.0001
     LOSS_FN = nn.CrossEntropyLoss(reduction = 'none')
 
     # Fit model
-    loss_vector, val_loss_vector = fit(EPOCHS, tx, ty, vx, vy, tex, tey, LOSS_FN, None, early_stopping = True)
+    #loss_vector, val_loss_vector = fit(EPOCHS, tx, ty, vx, vy, tex, tey, LOSS_FN, None, early_stopping = True)
 
 
     # Plots - will plot loss function, confusion matrix and maybe ROC
-    plot_loss_function('../results', 'Loss', loss_vector, val_loss_vector)
+    #plot_loss_function('../results', 'Loss', loss_vector, val_loss_vector)
     
 
 

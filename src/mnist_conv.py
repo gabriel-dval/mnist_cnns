@@ -162,9 +162,8 @@ def prep_2d_image(X, y):
     y : array
         Associated label
     '''
-    # No transformation of the image - remove single dimension
+    # No transformation of the image
     tensor_X = torch.from_numpy(X.astype(np.float32))
-    tensor_X = torch.squeeze(tensor_X, (28, 28))
 
     # Turn labels into class vectors
     tensor_y = torch.as_tensor(y, dtype = torch.long)
@@ -427,7 +426,7 @@ def test(model, test_loader, loss_fn, epoch, figure_path):
         plt.figure(figsize = (10, 6))
         sns.heatmap(overall_conf_matrix, annot = True)  
         plt.title(f'CM - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
-        plt.savefig(f"{figure_path}/ConfusionMatrix_BS{BATCH_SIZE}_LR{LR}.png")
+        plt.savefig(f"{figure_path}/CONVConfusionMatrix_BS{BATCH_SIZE}_LR{LR}.png")
 
 
         #Prints
@@ -518,7 +517,7 @@ def fit(epochs, X_train, y_train, X_val, y_val, X_test, y_test, loss_fn, save_lo
     t_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
 
     
-    model = Base().to(device)
+    model = CONV().to(device)
 
     # Set optimizer based on model parameters
     lr = LR
@@ -562,23 +561,33 @@ class CONV(nn.Module):
 
     def __init__(self):
         super().__init__()
-        self.conv1 = nn.Conv1d(in_channels=28, out_channels= 16, kernel_size=3, padding="same")
-        self.conv2 = nn.Conv1d(in_channels=16, out_channels=10, kernel_size=1, padding="same")
+        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=0)
+        self.pool1 = nn.MaxPool2d(kernel_size=2)
+        self.lin1 = nn.Linear(5408, 10)
         
         self.batchnorm1 = nn.BatchNorm1d(16)
+        self.batchnorm2 = nn.BatchNorm1d(16)
+        self.flatten = nn.Flatten()
         
         self.dropout1 = nn.Dropout(0.3)
 
-        self.relu1 = nn.ReLU()
+        self.relu = nn.ReLU()
         self.softmax = torch.nn.Softmax(dim = 1)
 
     def forward(self, x):
+
+        out = x.permute(0, 3, 1, 2)  # [batch, width, height, channels] --> [batch, channels, width, height]
         
-        out = self.conv1(x)
-        out = self.batchnorm1(out)
-        out = self.relu1(out)
-        out = self.dropout1(out)
-        out = self.conv2(out)
+        out = self.conv1(out)
+        out = self.relu(out)
+        out = self.pool1(out)
+        #out = self.batchnorm1(out)
+        #out = self.dropout1(out)
+        # out = self.conv2(out)
+        # out = self.batchnorm2(out)
+        # out = self.relu(out)
+        out = self.flatten(out)
+        out = self.lin1(out)
         out = self.softmax(out)
 
         return out
@@ -611,7 +620,7 @@ if __name__ == '__main__':
 
     # Set hyperparameters
     PATIENCE = 5
-    BATCH_SIZE = 16
+    BATCH_SIZE = 128
     NUM_WORKERS = 0
     EPOCHS = 60
     LR = 0.001
@@ -622,7 +631,7 @@ if __name__ == '__main__':
 
 
     # Plots - will plot loss function, confusion matrix and maybe ROC
-    plot_loss_function('../results', 'Loss', loss_vector, val_loss_vector)
+    plot_loss_function('../results', 'CONVLoss', loss_vector, val_loss_vector)
     
 
 
