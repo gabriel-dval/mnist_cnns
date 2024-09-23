@@ -194,31 +194,56 @@ class MNISTCustom(Dataset):
 
 # Cross-validation generation --------------------------------------------------------------
 
-def cross_val_data(X_train, y_train, X_test, y_test, cross_val_nb):
+def cross_val_data(X_train, y_train, cross_val_nb):
     '''Function that generates the train, validation and test data for
     the number of folds specified.
 
     Args
     ---
     X_train : array
+        Training image data.
     y_train : array
+        Training labels.
     X_test : array
+        Test image data.
     y_test : array
+        Test labels.
     cross_val_nb : int
+        Number of cross-validation folds.
+
+    Returns
+    ---
+    folds : list of tuples
+        Each tuple contains (X_train_fold, y_train_fold, X_val_fold, y_val_fold)
+        for each cross-validation fold.
     '''
-    # Merge images and labels
-    all_data = np.concatenate((X_train, X_test), axis = 0)
-    all_labels = np.concatenate((y_train, y_test), axis = 0)
-
-    # Shuffle data set and test data set
-    ns =  all_data.shape[0]
+    # Shuffle the entire dataset
+    ns = X_train.shape[0]
     shuffle_index = np.random.permutation(ns)
-    images, labels = all_data[shuffle_index,:,:,:], all_labels[shuffle_index]
+    images, labels = X_train[shuffle_index], y_train[shuffle_index]
 
-    # Cross validation data
+    # Determine the number of samples in each fold
+    fold_size = ns // cross_val_nb
     
+    # Cross-validation data
+    folds = []
 
-
+    for i in range(cross_val_nb):
+        # Define validation set for the current fold
+        start_val = i * fold_size
+        end_val = (i + 1) * fold_size if i != cross_val_nb - 1 else ns
+        
+        X_val_fold = images[start_val:end_val]
+        y_val_fold = labels[start_val:end_val]
+        
+        # Define training set for the current fold (exclude the validation fold)
+        X_train_fold = np.concatenate((images[:start_val], images[end_val:]), axis=0)
+        y_train_fold = np.concatenate((labels[:start_val], labels[end_val:]), axis=0)
+        
+        # Append the fold to the list as a tuple (X_train_fold, y_train_fold, X_val_fold, y_val_fold)
+        folds.append((X_train_fold, y_train_fold, X_val_fold, y_val_fold))
+    
+    return folds
 
 
 
@@ -458,10 +483,10 @@ def test(model, test_loader, loss_fn, epoch, figure_path):
         mc = matthews_corrcoef(all_true_classes, all_pred_classes)
 
         # Draw and save confusion matrix
-        plt.figure(figsize = (10, 6))
-        sns.heatmap(overall_conf_matrix, annot = True)  
-        plt.title(f'CM - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
-        plt.savefig(f"{figure_path}/ConfusionMatrix_BS{BATCH_SIZE}_LR{LR}.png")
+        # plt.figure(figsize = (10, 6))
+        # sns.heatmap(overall_conf_matrix, annot = True)  
+        # plt.title(f'CM - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
+        # plt.savefig(f"{figure_path}/ConfusionMatrix_BS{BATCH_SIZE}_LR{LR}.png")
 
 
         #Prints
@@ -628,7 +653,7 @@ if __name__ == '__main__':
     X_test = np.load('../data/test_images.npy')
     y_test = np.load('../data/test_labels.npy')
 
-    view_images('../data/test_images.npy', '../data/test_labels.npy')
+    #view_images('../data/test_images.npy', '../data/test_labels.npy')
 
     tx, ty, vx, vy, tex, tey = train_validation_test(X_train, y_train, X_test, y_test)
 
@@ -640,7 +665,7 @@ if __name__ == '__main__':
     # plt.bar(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], counts)
     # plt.show()
 
-
+    folds = cross_val_data(X_train, y_train, 5)
 
     # Computation device
 
@@ -649,14 +674,32 @@ if __name__ == '__main__':
 
     # Set hyperparameters
     PATIENCE = 5
-    BATCH_SIZE = 2048
+    BATCH_SIZE = 128
     NUM_WORKERS = 0
-    EPOCHS = 60
-    LR = 0.0001
+    EPOCHS = 2
+    LR = 0.001
     LOSS_FN = nn.CrossEntropyLoss(reduction = 'none')
 
     # Fit model
-    #loss_vector, val_loss_vector = fit(EPOCHS, tx, ty, vx, vy, tex, tey, LOSS_FN, None, early_stopping = True)
+    losses = []
+    val_losses = []
+    for k in folds:
+        tx, ty, vx, vy = k
+        loss_vector, val_loss_vector = fit(EPOCHS, tx, ty, vx, vy, tex, tey, LOSS_FN, None, early_stopping = True)
+        losses.append(loss_vector)
+        val_losses.append(val_loss_vector)
+
+    plt.figure(figsize = (10, 6))
+    for i, (l, val) in enumerate(zip(losses, val_losses)):
+        plt.plot(list(range(len(loss_vector))), loss_vector, color = 'red', label = 'Training Loss')
+        plt.plot(list(range(len(val_loss_vector))), val_loss_vector, color = 'blue', label = 'Validation loss',
+                linestyle = 'dashed')
+    plt.xlabel("Number of epochs")
+    plt.ylabel("Loss value")
+    plt.title(f'Loss function - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
+    plt.legend(loc = 'upper right')
+   #plt.savefig(f"../results/CVLosses_BS{BATCH_SIZE}_LR{LR}.png")
+    plt.show()
 
 
     # Plots - will plot loss function, confusion matrix and maybe ROC
