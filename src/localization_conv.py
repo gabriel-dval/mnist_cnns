@@ -8,9 +8,11 @@ import time
 import argparse
 import random
 import datetime as dt
+import requests
+import zipfile
+from pandas import read_csv
 
 import numpy as np
-#import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -106,6 +108,28 @@ def plot_loss_function(figure_path, index, loss_vector, val_loss_vector):
 
 
 # Custom Dataset --------------------------------------------------------------------------
+
+def download_data():
+    url="https://github.com/JJAlmagro/subcellular_localization/raw/refs/heads/master/notebook%20tutorial/data/reduced_train.npz"
+    datasetFolderPath = "data/localization/"
+    file = "reduced_train.npz"
+    FilePath = os.path.join(datasetFolderPath, file)
+
+    if not os.path.exists(datasetFolderPath):
+        os.makedirs(datasetFolderPath)
+
+    def download_file(url, filename):
+        response = requests.get(url, stream=True)
+        with tqdm.wrapattr(open(filename, "wb"), "write", miniters=1,
+                           total=int(response.headers.get('content-length', 0)),
+                           desc=filename) as fout:
+            for chunk in response.iter_content(chunk_size=4096):
+                fout.write(chunk)
+
+    # Download the zip file if it does not exist
+    if not os.path.exists(FilePath):
+        download_file(url, FilePath)
+
 
 def train_validation_test(X_train, y_train, X_test, y_test, val_proportion = 0.125):
     '''Simple function to create our train, validation and test sets
@@ -654,19 +678,16 @@ if __name__ == '__main__':
     # Set seed
     set_seed(42)
 
-    # Quick test of the images
-    image_path = 'data'
+    # Quick test of the data
+    image_path = 'data/localization/reduced_train.npz'
 
-    X_train = np.load('../data/train_images.npy')
-    y_train = np.load('../data/train_labels.npy')
-    X_test = np.load('../data/test_images.npy')
-    y_test = np.load('../data/test_labels.npy')
+    train = np.load(image_path)
+    X_train = train["X_train"]
+    Y = train["y_train"]
+    mask_train = train["mask_train"]
 
-    tx, ty, vx, vy, tex, tey = train_validation_test(X_train, y_train, X_test, y_test)
-
-    # unique, counts = np.unique(tey, return_counts=True)
-    # plt.bar(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], counts)
-    # plt.show()
+    print(X_train[0].shape)
+    print(mask_train[0].shape)
 
     # Computation device
 
@@ -680,29 +701,27 @@ if __name__ == '__main__':
     EPOCHS = 60
     LR = 0.001
     LOSS_FN = nn.CrossEntropyLoss(reduction = 'none')
-    
-    folds = cross_val_data(X_train, y_train, 6)
 
     # Fit model
-    losses = []
-    val_losses = []
-    for k in folds:
-        tx, ty, vx, vy = k
-        loss_vector, val_loss_vector = fit(EPOCHS, tx, ty, vx, vy, tex, tey, LOSS_FN, None, early_stopping = True)
-        losses.append(loss_vector)
-        val_losses.append(val_loss_vector)
+    # losses = []
+    # val_losses = []
+    # for k in folds:
+    #     tx, ty, vx, vy = k
+    #     loss_vector, val_loss_vector = fit(EPOCHS, tx, ty, vx, vy, tex, tey, LOSS_FN, None, early_stopping = True)
+    #     losses.append(loss_vector)
+    #     val_losses.append(val_loss_vector)
 
-    plt.figure(figsize = (10, 6))
-    for i, (l, val) in enumerate(zip(losses, val_losses)):
-        colour = np.random.rand(3,)
-        plt.plot(list(range(len(loss_vector))), loss_vector, color = colour, label = f'CV{i+1} training loss')
-        plt.plot(list(range(len(val_loss_vector))), val_loss_vector, color = colour, label = f'CV{i+1} validation loss',
-                linestyle = 'dashed')
-    plt.xlabel("Number of epochs")
-    plt.ylabel("Loss value")
-    plt.title(f'Loss function - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
-    plt.legend(loc = 'upper right')
-    plt.savefig(f"../results/CONVCVLosses_BS{BATCH_SIZE}_LR{LR}.png")
+    # plt.figure(figsize = (10, 6))
+    # for i, (l, val) in enumerate(zip(losses, val_losses)):
+    #     colour = np.random.rand(3,)
+    #     plt.plot(list(range(len(loss_vector))), loss_vector, color = colour, label = f'CV{i+1} training loss')
+    #     plt.plot(list(range(len(val_loss_vector))), val_loss_vector, color = colour, label = f'CV{i+1} validation loss',
+    #             linestyle = 'dashed')
+    # plt.xlabel("Number of epochs")
+    # plt.ylabel("Loss value")
+    # plt.title(f'Loss function - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
+    # plt.legend(loc = 'upper right')
+    # plt.savefig(f"../results/CONVCVLosses_BS{BATCH_SIZE}_LR{LR}.png")
 
 
     # Plots - will plot loss function, confusion matrix and maybe ROC

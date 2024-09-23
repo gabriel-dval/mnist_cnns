@@ -483,10 +483,10 @@ def test(model, test_loader, loss_fn, epoch, figure_path):
         mc = matthews_corrcoef(all_true_classes, all_pred_classes)
 
         # Draw and save confusion matrix
-        # plt.figure(figsize = (10, 6))
-        # sns.heatmap(overall_conf_matrix, annot = True)  
-        # plt.title(f'CM - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
-        # plt.savefig(f"{figure_path}/ConfusionMatrix_BS{BATCH_SIZE}_LR{LR}.png")
+        plt.figure(figsize = (10, 6))
+        sns.heatmap(overall_conf_matrix, annot = True)  
+        plt.title(f'CM - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
+        plt.savefig(f"{figure_path}/ConfusionMatrix_BS{BATCH_SIZE}_LR{LR}.png")
 
 
         #Prints
@@ -533,8 +533,7 @@ class EarlyStopping():
 
 
 def fit(epochs, X_train, y_train, X_val, y_val, X_test, y_test, loss_fn, save_loc, early_stopping = True):
-    '''Function to load data and fit model for a set number of epochs and
-    a set number of protein embeddings (hence the double for loop).
+    '''Function to load data and fit model for a set number of epochs
 
     Arguments
     ---
