@@ -164,7 +164,7 @@ def prep_2d_image(X, y):
     '''
     # No transformation of the image - remove single dimension
     tensor_X = torch.from_numpy(X.astype(np.float32))
-    tensor_X = torch.reshape(tensor_X, (28, 28))
+    tensor_X = torch.squeeze(tensor_X, (28, 28))
 
     # Turn labels into class vectors
     tensor_y = torch.as_tensor(y, dtype = torch.long)
@@ -558,23 +558,27 @@ def fit(epochs, X_train, y_train, X_val, y_val, X_test, y_test, loss_fn, save_lo
 
 # Models ------------------------------------------------------------------------------------
 
-class Base(nn.Module):
+class CONV(nn.Module):
 
     def __init__(self):
         super().__init__()
-        self.stack = nn.Sequential(
-            nn.Linear(28*28, 256),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(256, 128),
-            nn.ReLU(),
-            nn.Linear(128, 10),
-        )
+        self.conv1 = nn.Conv1d(in_channels=28, out_channels= 16, kernel_size=3, padding="same")
+        self.conv2 = nn.Conv1d(in_channels=16, out_channels=10, kernel_size=1, padding="same")
+        
+        self.batchnorm1 = nn.BatchNorm1d(16)
+        
+        self.dropout1 = nn.Dropout(0.3)
+
+        self.relu1 = nn.ReLU()
         self.softmax = torch.nn.Softmax(dim = 1)
 
     def forward(self, x):
         
-        out = self.stack(x)
+        out = self.conv1(x)
+        out = self.batchnorm1(out)
+        out = self.relu1(out)
+        out = self.dropout1(out)
+        out = self.conv2(out)
         out = self.softmax(out)
 
         return out
