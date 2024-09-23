@@ -133,10 +133,14 @@ def train_validation_test(X_train, y_train, X_test, y_test, val_proportion = 0.1
     X_test : array
     y_test : array
     '''
-    # Shuffle train data set
+    # Shuffle train data set and test data set
     ns =  X_train.shape[0]
     shuffle_index = np.random.permutation(ns)
     train_images, train_labels = X_train[shuffle_index,:,:,:], y_train[shuffle_index]
+
+    ns =  X_test.shape[0]
+    shuffle_index = np.random.permutation(ns)
+    test_images, test_labels = X_test[shuffle_index,:,:,:], y_test[shuffle_index]
 
     # Set validation index
     val_size = int(ns * val_proportion)
@@ -146,8 +150,10 @@ def train_validation_test(X_train, y_train, X_test, y_test, val_proportion = 0.1
     y_tr = train_labels[:-val_size]
     X_val = train_images[-val_size:,:,:,:]
     y_val = train_labels[-val_size:]
+    X_te = test_images
+    y_te = test_labels
     
-    return X_tr, y_tr, X_val, y_val, X_test, y_test
+    return X_tr, y_tr, X_val, y_val, X_te, y_te
 
 
 def prep_flat_image(X, y):
@@ -595,6 +601,10 @@ if __name__ == '__main__':
 
     tx, ty, vx, vy, tex, tey = train_validation_test(X_train, y_train, X_test, y_test)
 
+    # unique, counts = np.unique(tey, return_counts=True)
+    # plt.bar(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], counts)
+    # plt.show()
+
     # Computation device
 
     device = ("cuda" if torch.cuda.is_available() else "cpu")
@@ -604,7 +614,7 @@ if __name__ == '__main__':
     PATIENCE = 5
     BATCH_SIZE = 128
     NUM_WORKERS = 0
-    EPOCHS = 30
+    EPOCHS = 50
     LR = 0.001
     LOSS_FN = nn.CrossEntropyLoss(reduction = 'none')
 
