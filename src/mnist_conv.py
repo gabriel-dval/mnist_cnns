@@ -152,20 +152,19 @@ def train_validation_test(X_train, y_train, X_test, y_test, val_proportion = 0.1
     return X_tr, y_tr, X_val, y_val, X_te, y_te
 
 
-def prep_flat_image(X, y):
+def prep_2d_image(X, y):
     '''Function to prepare image dataset
 
     Args
     ---
-    X : iterable
-        List or array of 2D images 
-    y : iterable
-        List or array of equivalent labels
+    X : array
+        Single 2D image 
+    y : array
+        Associated label
     '''
-    # Flatten images and turn into tensors
-    pixels = 28 * 28 # Image dimensions
-    flat_X = X.reshape(pixels)
-    tensor_X = torch.from_numpy(flat_X.astype(np.float32))
+    # No transformation of the image - remove single dimension
+    tensor_X = torch.from_numpy(X.astype(np.float32))
+    tensor_X = torch.reshape(tensor_X, (28, 28))
 
     # Turn labels into class vectors
     tensor_y = torch.as_tensor(y, dtype = torch.long)
@@ -187,7 +186,7 @@ class MNISTCustom(Dataset):
     def __getitem__(self, idx):
         image = self.X_path[idx, :, :, :]
         label = self.y_path[idx]
-        return prep_flat_image(image, label)
+        return prep_2d_image(image, label)
 
 
 # train, validation and test function ------------------------------------------------------

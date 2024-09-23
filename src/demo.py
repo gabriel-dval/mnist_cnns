@@ -159,10 +159,10 @@ def prep_flat_image(X, y):
 
     Args
     ---
-    X : iterable
-        List or array of 2D images 
-    y : iterable
-        List or array of equivalent labels
+    X : array
+        2D image 
+    y : array
+        Associated label
     '''
     # Flatten images and turn into tensors
     pixels = 28 * 28 # Image dimensions
@@ -610,7 +610,7 @@ if __name__ == '__main__':
 
     # Set hyperparameters
     PATIENCE = 5
-    BATCH_SIZE = 16
+    BATCH_SIZE = 32
     NUM_WORKERS = 0
     EPOCHS = 60
     LR = 0.001
