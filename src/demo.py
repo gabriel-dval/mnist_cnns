@@ -612,9 +612,9 @@ if __name__ == '__main__':
 
     # Set hyperparameters
     PATIENCE = 5
-    BATCH_SIZE = 128
+    BATCH_SIZE = 16
     NUM_WORKERS = 0
-    EPOCHS = 50
+    EPOCHS = 60
     LR = 0.001
     LOSS_FN = nn.CrossEntropyLoss(reduction = 'none')
 
