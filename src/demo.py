@@ -604,7 +604,7 @@ if __name__ == '__main__':
     PATIENCE = 5
     BATCH_SIZE = 128
     NUM_WORKERS = 0
-    EPOCHS = 5
+    EPOCHS = 30
     LR = 0.001
     LOSS_FN = nn.CrossEntropyLoss(reduction = 'none')
 
