@@ -210,6 +210,16 @@ def cross_val_data(X_train, y_train, X_test, y_test, cross_val_nb):
     all_data = np.concatenate((X_train, X_test), axis = 0)
     all_labels = np.concatenate((y_train, y_test), axis = 0)
 
+    # Shuffle data set and test data set
+    ns =  all_data.shape[0]
+    shuffle_index = np.random.permutation(ns)
+    images, labels = all_data[shuffle_index,:,:,:], all_labels[shuffle_index]
+
+    # Cross validation data
+    
+
+
+
 
 
 

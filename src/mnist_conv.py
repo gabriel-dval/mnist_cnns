@@ -141,12 +141,12 @@ def train_validation_test(X_train, y_train, X_test, y_test, val_proportion = 0.1
     # Set validation index
     val_size = int(ns * val_proportion)
 
-    # Create train, test and validaiton
+    # Create train, test and validaiton (also normalize test)
     X_tr = train_images[:-val_size,:,:,:]
     y_tr = train_labels[:-val_size]
     X_val = train_images[-val_size:,:,:,:]
     y_val = train_labels[-val_size:]
-    X_te = test_images
+    X_te = test_images / 255
     y_te = test_labels
     
     return X_tr, y_tr, X_val, y_val, X_te, y_te
@@ -203,7 +203,7 @@ def cross_val_data(X_train, y_train, X_test, y_test, cross_val_nb):
     cross_val_nb : int
     '''
     # Merge images and labels
-    
+
 
 # train, validation and test function ------------------------------------------------------
 
@@ -538,8 +538,8 @@ def fit(epochs, X_train, y_train, X_val, y_val, X_test, y_test, loss_fn, save_lo
 
     # Set optimizer based on model parameters
     lr = LR
-    optimizer = optim.RMSprop(model.parameters(), 
-                        lr=lr) 
+    optimizer = optim.Adam(model.parameters(), 
+                        lr=lr ,amsgrad = False) 
 
     # Train model for set number of epochs
     for epoch in range(epochs):
@@ -641,7 +641,7 @@ if __name__ == '__main__':
     PATIENCE = 5
     BATCH_SIZE = 128
     NUM_WORKERS = 0
-    EPOCHS = 5
+    EPOCHS = 60
     LR = 0.001
     LOSS_FN = nn.CrossEntropyLoss(reduction = 'none')
 
