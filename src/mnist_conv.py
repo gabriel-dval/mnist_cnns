@@ -188,6 +188,23 @@ class MNISTCustom(Dataset):
         return prep_2d_image(image, label)
 
 
+# Cross-validation generation --------------------------------------------------------------
+
+def cross_val_data(X_train, y_train, X_test, y_test, cross_val_nb):
+    '''Function that generates the train, validation and test data for
+    the number of folds specified.
+
+    Args
+    ---
+    X_train : array
+    y_train : array
+    X_test : array
+    y_test : array
+    cross_val_nb : int
+    '''
+    # Merge images and labels
+    
+
 # train, validation and test function ------------------------------------------------------
 
 
@@ -562,11 +579,12 @@ class CONV(nn.Module):
     def __init__(self):
         super().__init__()
         self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=0)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=0)
         self.pool1 = nn.MaxPool2d(kernel_size=2)
-        self.lin1 = nn.Linear(5408, 10)
+        self.lin1 = nn.Linear(1600, 10)
         
-        self.batchnorm1 = nn.BatchNorm1d(16)
-        self.batchnorm2 = nn.BatchNorm1d(16)
+        self.batchnorm1 = nn.BatchNorm2d(32)
+        self.batchnorm2 = nn.BatchNorm2d(64)
         self.flatten = nn.Flatten()
         
         self.dropout1 = nn.Dropout(0.3)
@@ -580,12 +598,13 @@ class CONV(nn.Module):
         
         out = self.conv1(out)
         out = self.relu(out)
+        out = self.batchnorm1(out)
         out = self.pool1(out)
-        #out = self.batchnorm1(out)
-        #out = self.dropout1(out)
-        # out = self.conv2(out)
-        # out = self.batchnorm2(out)
-        # out = self.relu(out)
+        out = self.dropout1(out)
+        out = self.conv2(out)
+        out = self.relu(out)
+        out = self.batchnorm2(out)
+        out = self.pool1(out)
         out = self.flatten(out)
         out = self.lin1(out)
         out = self.softmax(out)
@@ -622,7 +641,7 @@ if __name__ == '__main__':
     PATIENCE = 5
     BATCH_SIZE = 128
     NUM_WORKERS = 0
-    EPOCHS = 60
+    EPOCHS = 5
     LR = 0.001
     LOSS_FN = nn.CrossEntropyLoss(reduction = 'none')
 

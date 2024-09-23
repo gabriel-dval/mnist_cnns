@@ -192,6 +192,27 @@ class MNISTCustom(Dataset):
         return prep_flat_image(image, label)
 
 
+# Cross-validation generation --------------------------------------------------------------
+
+def cross_val_data(X_train, y_train, X_test, y_test, cross_val_nb):
+    '''Function that generates the train, validation and test data for
+    the number of folds specified.
+
+    Args
+    ---
+    X_train : array
+    y_train : array
+    X_test : array
+    y_test : array
+    cross_val_nb : int
+    '''
+    # Merge images and labels
+    all_data = np.concatenate((X_train, X_test), axis = 0)
+    all_labels = np.concatenate((y_train, y_test), axis = 0)
+
+
+
+
 # train, validation and test function ------------------------------------------------------
 
 
