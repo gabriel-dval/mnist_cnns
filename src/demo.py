@@ -148,7 +148,7 @@ def train_validation_test(X_train, y_train, X_test, y_test, val_proportion = 0.1
     y_tr = train_labels[:-val_size]
     X_val = train_images[-val_size:,:,:,:]
     y_val = train_labels[-val_size:]
-    X_te = test_images
+    X_te = test_images / 255
     y_te = test_labels
     
     return X_tr, y_tr, X_val, y_val, X_te, y_te
@@ -665,7 +665,7 @@ if __name__ == '__main__':
     # plt.bar(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], counts)
     # plt.show()
 
-    folds = cross_val_data(X_train, y_train, 5)
+    folds = cross_val_data(X_train, y_train, 6)
 
     # Computation device
 
@@ -676,7 +676,7 @@ if __name__ == '__main__':
     PATIENCE = 5
     BATCH_SIZE = 128
     NUM_WORKERS = 0
-    EPOCHS = 2
+    EPOCHS = 60
     LR = 0.001
     LOSS_FN = nn.CrossEntropyLoss(reduction = 'none')
 
@@ -691,15 +691,15 @@ if __name__ == '__main__':
 
     plt.figure(figsize = (10, 6))
     for i, (l, val) in enumerate(zip(losses, val_losses)):
-        plt.plot(list(range(len(loss_vector))), loss_vector, color = 'red', label = 'Training Loss')
-        plt.plot(list(range(len(val_loss_vector))), val_loss_vector, color = 'blue', label = 'Validation loss',
+        colour = np.random.rand(3,)
+        plt.plot(list(range(len(loss_vector))), loss_vector, color = colour, label = f'CV{i+1} training loss')
+        plt.plot(list(range(len(val_loss_vector))), val_loss_vector, color = colour, label = f'CV{i+1} validation loss',
                 linestyle = 'dashed')
     plt.xlabel("Number of epochs")
     plt.ylabel("Loss value")
     plt.title(f'Loss function - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
     plt.legend(loc = 'upper right')
-   #plt.savefig(f"../results/CVLosses_BS{BATCH_SIZE}_LR{LR}.png")
-    plt.show()
+    plt.savefig(f"../results/CVLosses_BS{BATCH_SIZE}_LR{LR}.png")
 
 
     # Plots - will plot loss function, confusion matrix and maybe ROC

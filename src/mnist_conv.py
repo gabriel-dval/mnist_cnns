@@ -190,19 +190,56 @@ class MNISTCustom(Dataset):
 
 # Cross-validation generation --------------------------------------------------------------
 
-def cross_val_data(X_train, y_train, X_test, y_test, cross_val_nb):
+def cross_val_data(X_train, y_train, cross_val_nb):
     '''Function that generates the train, validation and test data for
     the number of folds specified.
 
     Args
     ---
     X_train : array
+        Training image data.
     y_train : array
+        Training labels.
     X_test : array
+        Test image data.
     y_test : array
+        Test labels.
     cross_val_nb : int
+        Number of cross-validation folds.
+
+    Returns
+    ---
+    folds : list of tuples
+        Each tuple contains (X_train_fold, y_train_fold, X_val_fold, y_val_fold)
+        for each cross-validation fold.
     '''
-    # Merge images and labels
+    # Shuffle the entire dataset
+    ns = X_train.shape[0]
+    shuffle_index = np.random.permutation(ns)
+    images, labels = X_train[shuffle_index], y_train[shuffle_index]
+
+    # Determine the number of samples in each fold
+    fold_size = ns // cross_val_nb
+    
+    # Cross-validation data
+    folds = []
+
+    for i in range(cross_val_nb):
+        # Define validation set for the current fold
+        start_val = i * fold_size
+        end_val = (i + 1) * fold_size if i != cross_val_nb - 1 else ns
+        
+        X_val_fold = images[start_val:end_val]
+        y_val_fold = labels[start_val:end_val]
+        
+        # Define training set for the current fold (exclude the validation fold)
+        X_train_fold = np.concatenate((images[:start_val], images[end_val:]), axis=0)
+        y_train_fold = np.concatenate((labels[:start_val], labels[end_val:]), axis=0)
+        
+        # Append the fold to the list as a tuple (X_train_fold, y_train_fold, X_val_fold, y_val_fold)
+        folds.append((X_train_fold, y_train_fold, X_val_fold, y_val_fold))
+    
+    return folds
 
 
 # train, validation and test function ------------------------------------------------------
@@ -644,13 +681,33 @@ if __name__ == '__main__':
     EPOCHS = 60
     LR = 0.001
     LOSS_FN = nn.CrossEntropyLoss(reduction = 'none')
+    
+    folds = cross_val_data(X_train, y_train, 6)
 
     # Fit model
-    loss_vector, val_loss_vector = fit(EPOCHS, tx, ty, vx, vy, tex, tey, LOSS_FN, None, early_stopping = True)
+    losses = []
+    val_losses = []
+    for k in folds:
+        tx, ty, vx, vy = k
+        loss_vector, val_loss_vector = fit(EPOCHS, tx, ty, vx, vy, tex, tey, LOSS_FN, None, early_stopping = True)
+        losses.append(loss_vector)
+        val_losses.append(val_loss_vector)
+
+    plt.figure(figsize = (10, 6))
+    for i, (l, val) in enumerate(zip(losses, val_losses)):
+        colour = np.random.rand(3,)
+        plt.plot(list(range(len(loss_vector))), loss_vector, color = colour, label = f'CV{i+1} training loss')
+        plt.plot(list(range(len(val_loss_vector))), val_loss_vector, color = colour, label = f'CV{i+1} validation loss',
+                linestyle = 'dashed')
+    plt.xlabel("Number of epochs")
+    plt.ylabel("Loss value")
+    plt.title(f'Loss function - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
+    plt.legend(loc = 'upper right')
+    plt.savefig(f"../results/CONVCVLosses_BS{BATCH_SIZE}_LR{LR}.png")
 
 
     # Plots - will plot loss function, confusion matrix and maybe ROC
-    plot_loss_function('../results', 'CONVLoss', loss_vector, val_loss_vector)
+    #plot_loss_function('../results', 'CONVLoss', loss_vector, val_loss_vector)
     
 
 
