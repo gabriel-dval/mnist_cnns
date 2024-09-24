@@ -606,7 +606,7 @@ def fit(epochs, X_train, y_train, mask_train, X_val, y_val, mask_val, X_test, y_
     t_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
 
     
-    model = CONV().to(device)
+    model = ResNet().to(device)
 
     # Set optimizer based on model parameters
     lr = LR
@@ -788,8 +788,8 @@ class ResNet(nn.Module):
         self.stack2 = Block(64, subsample=True)
         
         # Output
-        self.avgpool = nn.AvgPool2d((1, 1))
-        self.fcOut   = nn.Linear(6400, 10, bias=True)
+        self.avgpool = nn.MaxPool1d(kernel_size = 2)
+        self.fcOut   = nn.Linear(3200, 10, bias=True)
         self.softmax = nn.LogSoftmax(dim=-1)     
         
         
@@ -842,7 +842,7 @@ if __name__ == '__main__':
 
     # Set hyperparameters
     PATIENCE = 5
-    BATCH_SIZE = 128
+    BATCH_SIZE = 64
     NUM_WORKERS = 0
     EPOCHS = 60
     LR = 0.001
