@@ -103,7 +103,8 @@ def plot_loss_function(figure_path, index, loss_vector, val_loss_vector):
     plt.ylabel("Loss value")
     plt.title(f'Loss function - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
     plt.legend(loc = 'upper right')
-    plt.savefig(f"{figure_path}/{index}_BS{BATCH_SIZE}_LR{LR}.png")
+    #plt.savefig(f"{figure_path}/{index}_BS{BATCH_SIZE}_LR{LR}.png")
+    plt.show()
 
 
 
@@ -131,7 +132,7 @@ def download_data():
         download_file(url, FilePath)
 
 
-def train_validation_test(X_train, y_train, X_test, y_test, val_proportion = 0.125):
+def train_validation_test(X_train, y_train, mask_train, val_proportion = 0.1, test_proportion = 0.2):
     '''Simple function to create our train, validation and test sets
     Based on previously handed out format of data.
     
@@ -139,9 +140,10 @@ def train_validation_test(X_train, y_train, X_test, y_test, val_proportion = 0.1
     ---
     X_train : array
     y_train : array
-    X_test : array
-    y_test : array
+    mask_train : array
     val_proportion : float
+    test_proportion : float
+
 
     Returns
     ---
@@ -152,41 +154,48 @@ def train_validation_test(X_train, y_train, X_test, y_test, val_proportion = 0.1
     X_test : array
     y_test : array
     '''
-    # Shuffle train data set and test data set
+    # Shuffle data set
     ns =  X_train.shape[0]
     shuffle_index = np.random.permutation(ns)
-    train_images, train_labels = X_train[shuffle_index,:,:,:], y_train[shuffle_index]
+    train_images, train_labels, masks = X_train[shuffle_index,:,:], y_train[shuffle_index], mask_train[shuffle_index]
 
-    ns =  X_test.shape[0]
-    shuffle_index = np.random.permutation(ns)
-    test_images, test_labels = X_test[shuffle_index,:,:,:], y_test[shuffle_index]
 
-    # Set validation index
+    # Set test and validation index
     val_size = int(ns * val_proportion)
+    test_size = int(ns * test_proportion)
 
-    # Create train, test and validaiton (also normalize test)
-    X_tr = train_images[:-val_size,:,:,:]
-    y_tr = train_labels[:-val_size]
-    X_val = train_images[-val_size:,:,:,:]
-    y_val = train_labels[-val_size:]
-    X_te = test_images / 255
-    y_te = test_labels
+    val_index = val_size + test_size
+
+    # Create train, test and validation
+    X_tr = train_images[:-val_index,:,:]
+    y_tr = train_labels[:-val_index]
+    masks_tr = masks[:-val_index]
+    X_val = train_images[-val_index:-test_size,:,:]
+    y_val = train_labels[-val_index:-test_size]
+    masks_val = masks[-val_index:-test_size]
+    X_te = train_images[-test_size:,:,:]
+    y_te = train_labels[-test_size:]
+    masks_te = masks[-test_size:]
     
-    return X_tr, y_tr, X_val, y_val, X_te, y_te
+    return X_tr, y_tr, masks_tr, X_val, y_val, masks_val, X_te, y_te, masks_te
 
 
-def prep_2d_image(X, y):
-    '''Function to prepare image dataset
+def prep_data(X, y, mask):
+    '''Function to prepare localization dataset
 
     Args
     ---
     X : array
-        Single 2D image 
+        Features 
     y : array
         Associated label
+    mask : array
+        Provided vector for masking parts of the image
     '''
-    # No transformation of the image
-    tensor_X = torch.from_numpy(X.astype(np.float32))
+    # Masking of the image
+    masked_image = np.transpose(X) * mask
+    masked_image = np.transpose(masked_image)
+    tensor_X = torch.from_numpy(masked_image.astype(np.float32))
 
     # Turn labels into class vectors
     tensor_y = torch.as_tensor(y, dtype = torch.long)
@@ -196,19 +205,21 @@ def prep_2d_image(X, y):
     # Yield images
     return tensor_X, oh_y
 
-class MNISTCustom(Dataset):
-    '''Custom dataset for processing the MNIST images'''
-    def __init__(self, X_path, y_path):
+class LocalizationCustom(Dataset):
+    '''Custom dataset for processing the Localization data'''
+    def __init__(self, X_path, y_path, mask):
         self.X_path = X_path  # X
         self.y_path = y_path  # Y
+        self.mask = mask      # Masking vector
     
     def __len__(self):
         return len(self.y_path)
     
     def __getitem__(self, idx):
-        image = self.X_path[idx, :, :, :]
+        image = self.X_path[idx, :, :]
         label = self.y_path[idx]
-        return prep_2d_image(image, label)
+        mask = self.mask[idx]
+        return prep_data(image, label, mask)
 
 
 # Cross-validation generation --------------------------------------------------------------
@@ -500,10 +511,10 @@ def test(model, test_loader, loss_fn, epoch, figure_path):
         mc = matthews_corrcoef(all_true_classes, all_pred_classes)
 
         # Draw and save confusion matrix
-        plt.figure(figsize = (10, 6))
-        sns.heatmap(overall_conf_matrix, annot = True)  
-        plt.title(f'CM - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
-        plt.savefig(f"{figure_path}/CONVConfusionMatrix_BS{BATCH_SIZE}_LR{LR}.png")
+        # plt.figure(figsize = (10, 6))
+        # sns.heatmap(overall_conf_matrix, annot = True)  
+        # plt.title(f'CM - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
+        # plt.savefig(f"{figure_path}/CONVConfusionMatrix_BS{BATCH_SIZE}_LR{LR}.png")
 
 
         #Prints
@@ -549,7 +560,8 @@ class EarlyStopping():
                 self.early_stop = True
 
 
-def fit(epochs, X_train, y_train, X_val, y_val, X_test, y_test, loss_fn, save_loc, early_stopping = True):
+def fit(epochs, X_train, y_train, mask_train, X_val, y_val, mask_val, X_test, y_test, mask_test, 
+        loss_fn, save_loc, early_stopping = True):
     '''Function to load data and fit model for a set number of epochs and
     a set number of protein embeddings (hence the double for loop).
 
@@ -590,7 +602,7 @@ def fit(epochs, X_train, y_train, X_val, y_val, X_test, y_test, loss_fn, save_lo
     val_loss_vector = []
     
 
-    test_dataset = MNISTCustom(X_test, y_test)
+    test_dataset = LocalizationCustom(X_test, y_test, mask_test)
     t_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
 
     
@@ -604,8 +616,8 @@ def fit(epochs, X_train, y_train, X_val, y_val, X_test, y_test, loss_fn, save_lo
     # Train model for set number of epochs
     for epoch in range(epochs):
         #Create the datasets and dataloaders for training with shuffle each step
-        train_data = MNISTCustom(X_train, y_train)
-        val_data = MNISTCustom(X_val, y_val)
+        train_data = LocalizationCustom(X_train, y_train, mask_train)
+        val_data = LocalizationCustom(X_val, y_val, mask_val)
         train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
         val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
         train_loss = train(model, train_loader, loss_fn, optimizer, epoch)
@@ -638,13 +650,13 @@ class CONV(nn.Module):
 
     def __init__(self):
         super().__init__()
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=0)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=0)
-        self.pool1 = nn.MaxPool2d(kernel_size=2)
-        self.lin1 = nn.Linear(1600, 10)
+        self.conv1 = nn.Conv1d(20, 32, kernel_size=3, padding=0)
+        self.conv2 = nn.Conv1d(32, 16, kernel_size=3, padding=0)
+        self.pool1 = nn.MaxPool1d(kernel_size=2)
+        self.lin1 = nn.Linear(1568, 10)
         
-        self.batchnorm1 = nn.BatchNorm2d(32)
-        self.batchnorm2 = nn.BatchNorm2d(64)
+        self.batchnorm1 = nn.BatchNorm1d(32)
+        self.batchnorm2 = nn.BatchNorm1d(16)
         self.flatten = nn.Flatten()
         
         self.dropout1 = nn.Dropout(0.3)
@@ -654,22 +666,143 @@ class CONV(nn.Module):
 
     def forward(self, x):
 
-        out = x.permute(0, 3, 1, 2)  # [batch, width, height, channels] --> [batch, channels, width, height]
+        out = x.permute(0, 2, 1)  # [batch, length, features] --> [batch, features, length]
         
         out = self.conv1(out)
-        out = self.relu(out)
-        out = self.batchnorm1(out)
-        out = self.pool1(out)
         out = self.dropout1(out)
-        out = self.conv2(out)
+        out = self.batchnorm1(out)
         out = self.relu(out)
+
+        #out = self.pool1(out)
+        out = self.conv2(out)
         out = self.batchnorm2(out)
+        out = self.relu(out)
+
         out = self.pool1(out)
         out = self.flatten(out)
         out = self.lin1(out)
         out = self.softmax(out)
 
         return out
+
+
+class Block(nn.Module):
+    def __init__(self, filters, subsample=False):
+        super().__init__()
+        """
+        2-layer residual learning building block
+        
+        Args
+        --- 
+        filters:   int
+                     the number of filters for all layers in this block
+                   
+        subsample: boolean
+                     whether to subsample the input feature maps with stride 2
+                     and doubling in number of filters
+                     
+        Attributes
+        ---
+        shortcuts: boolean
+                     When false the residual shortcut is removed
+                     resulting in a 'plain' convolutional block.
+        """
+        # Subsampling
+        s = 0.5 if subsample else 1.0
+        
+        # Setup layers
+        self.conv1 = nn.Conv1d(int(filters*s), filters, kernel_size=3, 
+                               stride=int(1/s), padding=1, bias=False)
+        self.bn1   = nn.BatchNorm1d(filters, track_running_stats=True)
+        self.relu1 = nn.ReLU()
+
+        self.conv2 = nn.Conv1d(filters, filters, kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn2   = nn.BatchNorm1d(filters, track_running_stats=True)
+        self.relu2 = nn.ReLU()
+
+        # Shortcut downsampling
+        self.downsample = nn.MaxPool1d(kernel_size=1, stride=2) 
+        
+    def shortcut(self, z, x):
+        """ 
+        Shortcut option
+        
+        Args
+        ---
+        x: tensor
+             the input to the block
+        z: tensor
+             activations of block prior to final non-linearity
+        """
+        if x.shape != z.shape:
+            d = self.downsample(x)
+            p = torch.mul(d, 0)
+            return z + torch.cat((d, p), dim=1)
+        else:
+            return z + x        
+    
+    def forward(self, x, shortcuts=False):
+
+        z = self.conv1(x)
+        z = self.bn1(z)
+        z = self.relu1(z)
+        
+        z = self.conv2(z)
+        z = self.bn2(z)
+        
+        # Shortcut connection
+        if shortcuts:
+            z = self.shortcut(z, x)
+
+        z = self.relu2(z)
+        
+        return z
+    
+
+class ResNet(nn.Module):
+    def __init__(self, n, shortcuts=True):
+        super().__init__()
+        self.shortcuts = shortcuts
+        
+        # Input
+        self.convIn = nn.Conv1d(20, 16, kernel_size=3, stride=1, padding=1, bias=False)
+        self.dropout1 = nn.Dropout(0.3)
+        self.bnIn   = nn.BatchNorm1d(16, track_running_stats=True)
+        self.relu   = nn.ReLU()
+
+        # Stack2
+        self.stack1 = Block(32, subsample=False)
+
+        # Stack3
+        self.stack2 = Block(64, subsample=True)
+        
+        # Output
+        self.avgpool = nn.AvgPool2d((1, 1))
+        self.fcOut   = nn.Linear(6400, 10, bias=True)
+        self.softmax = nn.LogSoftmax(dim=-1)     
+        
+        
+    def forward(self, x):  
+
+        z = x.permute(0, 2, 1)  # [batch, length, features] --> [batch, features, length]
+
+        z = self.convIn(z)
+        z = self.dropout1(z)
+        z = self.bnIn(z)
+        z = self.relu(z)
+        
+        # Residual blocks
+        z = self.stack1(z, shortcuts=self.shortcuts)
+        
+        z = self.stack2(z, shortcuts=self.shortcuts)
+
+        z = self.avgpool(z)
+        z = z.view(z.size(0), -1)
+        z = self.fcOut(z)
+        z = self.softmax(z)
+
+        return z
+    
 
 
 
@@ -681,13 +814,10 @@ if __name__ == '__main__':
     # Quick test of the data
     image_path = 'data/localization/reduced_train.npz'
 
-    train = np.load(image_path)
-    X_train = train["X_train"]
-    Y = train["y_train"]
-    mask_train = train["mask_train"]
-
-    print(X_train[0].shape)
-    print(mask_train[0].shape)
+    dataset = np.load(image_path)
+    X_train = dataset["X_train"]
+    y = dataset["y_train"]
+    mask_train = dataset["mask_train"]
 
     # Computation device
 
@@ -699,8 +829,16 @@ if __name__ == '__main__':
     BATCH_SIZE = 128
     NUM_WORKERS = 0
     EPOCHS = 60
-    LR = 0.001
+    LR = 0.0005
     LOSS_FN = nn.CrossEntropyLoss(reduction = 'none')
+
+    tx, ty, tm, vx, vy, vm, tex, tey, tem = train_validation_test(X_train, y, mask_train)
+
+    loss_vector, val_loss_vector = fit(EPOCHS, tx, ty, tm, vx, vy, vm, tex, tey, tem, 
+                                       LOSS_FN, None, early_stopping = True)
+    
+    plot_loss_function(None, None, loss_vector, val_loss_vector)
+
 
     # Fit model
     # losses = []
