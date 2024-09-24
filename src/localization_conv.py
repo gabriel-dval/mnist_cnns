@@ -651,34 +651,43 @@ class CONV(nn.Module):
     def __init__(self):
         super().__init__()
 
-        self.conv1 = nn.Conv1d(400, 128, kernel_size=5, padding='same')
+        self.conv1 = nn.Conv1d(20, 64, kernel_size=3, padding='same')
         self.pool1 = nn.MaxPool1d(kernel_size=2)
-        self.batchnorm1 = nn.BatchNorm1d(128)
+        self.batchnorm1 = nn.BatchNorm1d(64)
         self.dropout1 = nn.Dropout(0.3)
 
-        self.conv2 = nn.Conv1d(128, 16, kernel_size=3, padding='same')
+        self.conv2 = nn.Conv1d(64, 32, kernel_size=3, padding='same')
         self.pool2 = nn.MaxPool1d(kernel_size=2)
-        self.batchnorm2 = nn.BatchNorm1d(16)
+        self.batchnorm2 = nn.BatchNorm1d(32)
+
+        self.conv3 = nn.Conv1d(32, 16, kernel_size=1, padding='same')
+        self.pool3 = nn.MaxPool1d(kernel_size=2)
+        self.batchnorm3 = nn.BatchNorm1d(16)
         
         self.flatten = nn.Flatten()
-        self.lin1 = nn.Linear(320, 10)
+        self.lin1 = nn.Linear(800, 10)
         self.softmax = torch.nn.Softmax(dim = 1)
 
         self.relu = nn.ReLU()
 
     def forward(self, x):
 
-        #out = x.permute(0, 2, 1)  # [batch, length, features] --> [batch, features, length]
+        out = x.permute(0, 2, 1)  # [batch, length, features] --> [batch, features, length]
         
-        out = self.conv1(x)
-        #out = self.pool1(out)
+        out = self.conv1(out)
+        out = self.pool1(out)
         out = self.batchnorm1(out)
         out = self.dropout1(out)
         out = self.relu(out)
 
         out = self.conv2(out)
-        #out = self.pool2(out)
+        out = self.pool2(out)
         out = self.batchnorm2(out)
+        out = self.relu(out)
+
+        out = self.conv3(out)
+        out = self.pool3(out)
+        out = self.batchnorm3(out)
         out = self.relu(out)
 
         out = self.flatten(out)
@@ -762,7 +771,7 @@ class Block(nn.Module):
     
 
 class ResNet(nn.Module):
-    def __init__(self, n, shortcuts=True):
+    def __init__(self, shortcuts=True):
         super().__init__()
         self.shortcuts = shortcuts
         
@@ -773,7 +782,7 @@ class ResNet(nn.Module):
         self.relu   = nn.ReLU()
 
         # Stack2
-        self.stack1 = Block(32, subsample=False)
+        self.stack1 = Block(32, subsample=True)
 
         # Stack3
         self.stack2 = Block(64, subsample=True)
@@ -821,6 +830,11 @@ if __name__ == '__main__':
     y = dataset["y_train"]
     mask_train = dataset["mask_train"]
 
+    # Compute class weights
+    class_labels = np.unique(y)
+    class_weights = compute_class_weight('balanced', classes = class_labels, y = y)
+    class_weights = torch.tensor(class_weights)
+
     # Computation device
 
     device = ("cuda" if torch.cuda.is_available() else "cpu")
@@ -828,11 +842,11 @@ if __name__ == '__main__':
 
     # Set hyperparameters
     PATIENCE = 5
-    BATCH_SIZE = 32
+    BATCH_SIZE = 128
     NUM_WORKERS = 0
     EPOCHS = 60
-    LR = 0.0005
-    LOSS_FN = nn.CrossEntropyLoss(reduction = 'none')
+    LR = 0.001
+    LOSS_FN = nn.CrossEntropyLoss(reduction = 'none', weight = class_weights)
 
     tx, ty, tm, vx, vy, vm, tex, tey, tem = train_validation_test(X_train, y, mask_train)
 
