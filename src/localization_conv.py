@@ -195,7 +195,7 @@ def prep_data(X, y, mask):
     # Masking of the image
     masked_image = np.transpose(X) * mask
     masked_image = np.transpose(masked_image)
-    tensor_X = torch.from_numpy(masked_image.astype(np.float32))
+    tensor_X = torch.from_numpy(X.astype(np.float32))
 
     # Turn labels into class vectors
     tensor_y = torch.as_tensor(y, dtype = torch.long)
@@ -650,35 +650,37 @@ class CONV(nn.Module):
 
     def __init__(self):
         super().__init__()
-        self.conv1 = nn.Conv1d(20, 32, kernel_size=3, padding=0)
-        self.conv2 = nn.Conv1d(32, 16, kernel_size=3, padding=0)
+
+        self.conv1 = nn.Conv1d(400, 128, kernel_size=5, padding='same')
         self.pool1 = nn.MaxPool1d(kernel_size=2)
-        self.lin1 = nn.Linear(1568, 10)
-        
-        self.batchnorm1 = nn.BatchNorm1d(32)
-        self.batchnorm2 = nn.BatchNorm1d(16)
-        self.flatten = nn.Flatten()
-        
+        self.batchnorm1 = nn.BatchNorm1d(128)
         self.dropout1 = nn.Dropout(0.3)
 
-        self.relu = nn.ReLU()
+        self.conv2 = nn.Conv1d(128, 16, kernel_size=3, padding='same')
+        self.pool2 = nn.MaxPool1d(kernel_size=2)
+        self.batchnorm2 = nn.BatchNorm1d(16)
+        
+        self.flatten = nn.Flatten()
+        self.lin1 = nn.Linear(320, 10)
         self.softmax = torch.nn.Softmax(dim = 1)
+
+        self.relu = nn.ReLU()
 
     def forward(self, x):
 
-        out = x.permute(0, 2, 1)  # [batch, length, features] --> [batch, features, length]
+        #out = x.permute(0, 2, 1)  # [batch, length, features] --> [batch, features, length]
         
-        out = self.conv1(out)
-        out = self.dropout1(out)
+        out = self.conv1(x)
+        #out = self.pool1(out)
         out = self.batchnorm1(out)
+        out = self.dropout1(out)
         out = self.relu(out)
 
-        #out = self.pool1(out)
         out = self.conv2(out)
+        #out = self.pool2(out)
         out = self.batchnorm2(out)
         out = self.relu(out)
 
-        out = self.pool1(out)
         out = self.flatten(out)
         out = self.lin1(out)
         out = self.softmax(out)
@@ -826,7 +828,7 @@ if __name__ == '__main__':
 
     # Set hyperparameters
     PATIENCE = 5
-    BATCH_SIZE = 128
+    BATCH_SIZE = 32
     NUM_WORKERS = 0
     EPOCHS = 60
     LR = 0.0005
