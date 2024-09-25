@@ -25,9 +25,11 @@ from tqdm.autonotebook import tqdm
 from sklearn.metrics import confusion_matrix, classification_report, ConfusionMatrixDisplay, balanced_accuracy_score
 from sklearn.utils.class_weight import compute_class_weight, compute_sample_weight
 from sklearn.metrics import roc_curve, RocCurveDisplay, PrecisionRecallDisplay, matthews_corrcoef
+from sklearn.manifold import TSNE
 
 import matplotlib.pyplot as plt
 import seaborn as sns
+
 
 
 # Seed function stolen from Yann --------------------------------------------------------
@@ -80,6 +82,46 @@ def view_images(X_path, y_path):
     plt.show()
 
 
+def plot_tsne(images, labels, n_components=2, perplexity=30, random_state=42):
+    """
+    Perform t-SNE on the input images and plot the result, coloring points by class.
+    
+    Parameters:
+    - images: List of numpy arrays, each of shape (28, 28, 1).
+    - labels: List or numpy array of class labels corresponding to each image.
+    - n_components: Number of dimensions to reduce to (typically 2 for visualization).
+    - perplexity: Perplexity parameter for t-SNE (default is 30).
+    - random_state: Random state for reproducibility.
+
+    Returns:
+    - A scatter plot of t-SNE results with points colored by class.
+    """
+    
+    # Flatten each image from 28x28x1 to a 1D vector (784 dimensions)
+    flattened_images = np.array([img.flatten() for img in images])
+    
+    # Initialize and fit t-SNE
+    tsne = TSNE(n_components=n_components, perplexity=perplexity, random_state=random_state)
+    tsne_results = tsne.fit_transform(flattened_images)
+    
+    # Create a scatter plot of the t-SNE results
+    plt.figure(figsize=(10, 8))
+    sns.scatterplot(
+        x=tsne_results[:, 0], y=tsne_results[:, 1], 
+        hue=labels, 
+        palette=sns.color_palette("hsv", len(np.unique(labels))),
+        legend="full", alpha=0.8
+    )
+    
+    # Set plot title and labels
+    plt.title('t-SNE plot of image data')
+    plt.xlabel('t-SNE component 1')
+    plt.ylabel('t-SNE component 2')
+    
+    # Show plot
+    plt.show()
+
+
 # Plotting functions
 
 def plot_loss_function(figure_path, index, loss_vector, val_loss_vector):
@@ -105,7 +147,6 @@ def plot_loss_function(figure_path, index, loss_vector, val_loss_vector):
     plt.title(f'Loss function - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
     plt.legend(loc = 'upper right')
     plt.savefig(f"{figure_path}/{index}_BS{BATCH_SIZE}_LR{LR}.png")
-
 
 
 # Custom Dataset --------------------------------------------------------------------------
@@ -647,22 +688,17 @@ if __name__ == '__main__':
     # Quick test of the images
     image_path = 'data'
 
-    X_train = np.load('../data/train_images.npy')
-    y_train = np.load('../data/train_labels.npy')
-    X_test = np.load('../data/test_images.npy')
-    y_test = np.load('../data/test_labels.npy')
+    X_train = np.load('data/train_images.npy')
+    y_train = np.load('data/train_labels.npy')
+    X_test = np.load('data/test_images.npy')
+    y_test = np.load('data/test_labels.npy')
+
+    # View data
 
     #view_images('../data/test_images.npy', '../data/test_labels.npy')
+    plot_tsne(X_train, y_train)
 
     tx, ty, vx, vy, tex, tey = train_validation_test(X_train, y_train, X_test, y_test)
-
-    # unique, counts = np.unique(tey, return_counts=True)
-    # plt.bar(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], counts)
-    # plt.show()
-
-    # unique, counts = np.unique(ty, return_counts=True)
-    # plt.bar(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], counts)
-    # plt.show()
 
     folds = cross_val_data(X_train, y_train, 6)
 
@@ -679,26 +715,30 @@ if __name__ == '__main__':
     LR = 0.001
     LOSS_FN = nn.CrossEntropyLoss(reduction = 'none')
 
-    # Fit model
-    losses = []
-    val_losses = []
-    for k in folds:
-        tx, ty, vx, vy = k
-        loss_vector, val_loss_vector = fit(EPOCHS, tx, ty, vx, vy, tex, tey, LOSS_FN, None, early_stopping = True)
-        losses.append(loss_vector)
-        val_losses.append(val_loss_vector)
+    
+    
+    
+    # Run Cross validation
 
-    plt.figure(figsize = (10, 6))
-    for i, (l, val) in enumerate(zip(losses, val_losses)):
-        colour = np.random.rand(3,)
-        plt.plot(list(range(len(l))), l, color = colour, label = f'CV{i+1} training loss')
-        plt.plot(list(range(len(val))), val, color = colour, label = f'CV{i+1} validation loss',
-                linestyle = 'dashed')
-    plt.xlabel("Number of epochs")
-    plt.ylabel("Loss value")
-    plt.title(f'Loss function - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
-    plt.legend(loc = 'upper right')
-    plt.savefig(f"../results/CVLosses_BS{BATCH_SIZE}_LR{LR}.png")
+    # losses = []
+    # val_losses = []
+    # for k in folds:
+    #     tx, ty, vx, vy = k
+    #     loss_vector, val_loss_vector = fit(EPOCHS, tx, ty, vx, vy, tex, tey, LOSS_FN, None, early_stopping = True)
+    #     losses.append(loss_vector)
+    #     val_losses.append(val_loss_vector)
+
+    # plt.figure(figsize = (10, 6))
+    # for i, (l, val) in enumerate(zip(losses, val_losses)):
+    #     colour = np.random.rand(3,)
+    #     plt.plot(list(range(len(l))), l, color = colour, label = f'CV{i+1} training loss')
+    #     plt.plot(list(range(len(val))), val, color = colour, label = f'CV{i+1} validation loss',
+    #             linestyle = 'dashed')
+    # plt.xlabel("Number of epochs")
+    # plt.ylabel("Loss value")
+    # plt.title(f'Loss function - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
+    # plt.legend(loc = 'upper right')
+    # plt.savefig(f"../results/CVLosses_BS{BATCH_SIZE}_LR{LR}.png")
 
 
     # Plots - will plot loss function, confusion matrix and maybe ROC
