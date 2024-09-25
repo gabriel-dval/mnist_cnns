@@ -820,42 +820,9 @@ if __name__ == '__main__':
     LOSS_FN = nn.CrossEntropyLoss(reduction = 'none', weight = class_weights)
 
     tx, ty, tm, vx, vy, vm, tex, tey, tem = train_validation_test(X_train, y, mask_train)
-
-    # Concatenate train and validation for cross validation
-    tvx = np.concatenate((tx, vx), axis = 0)
-    tvy = np.concatenate((ty, vy))
-    tvm = np.concatenate((tm, vm), axis = 0)
-
     
-    folds = cross_val_data(tvx, tvy, tvm, cross_val_nb=6)
-
-
-
-    # Cross val
-    losses = []
-    val_losses = []
-    for k in folds:
-        tx, ty, tm, vx, vy, vm = k
-        loss_vector, val_loss_vector = fit(EPOCHS, tx, ty, tm, vx, vy, vm, tex, tey, tem, 
+    loss_vector, val_loss_vector = fit(EPOCHS, tx, ty, tm, vx, vy, vm, tex, tey, tem, 
                                        LOSS_FN, None, early_stopping = True)
-        losses.append(loss_vector)
-        val_losses.append(val_loss_vector)
-
-    plt.figure(figsize = (10, 6))
-    for i, (l, val) in enumerate(zip(losses, val_losses)):
-        colour = np.random.rand(3,)
-        plt.plot(list(range(len(l))), l, color = colour, label = f'CV{i+1} training loss')
-        plt.plot(list(range(len(val))), val, color = colour, label = f'CV{i+1} validation loss',
-                linestyle = 'dashed')
-    plt.xlabel("Number of epochs")
-    plt.ylabel("Loss value")
-    plt.title(f'Loss function - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
-    plt.legend(loc = 'upper right')
-    plt.savefig(f"results/Loc_ResNetCVLosses_BS{BATCH_SIZE}_LR{LR}.png")
-
-
-    # Plots - will plot loss function, confusion matrix and maybe ROC
-    #plot_loss_function('../results', 'CONVLoss', loss_vector, val_loss_vector)
     
 
 

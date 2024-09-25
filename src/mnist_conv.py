@@ -655,12 +655,10 @@ if __name__ == '__main__':
     set_seed(42)
 
     # Quick test of the images
-    image_path = 'data'
-
-    X_train = np.load('../data/train_images.npy')
-    y_train = np.load('../data/train_labels.npy')
-    X_test = np.load('../data/test_images.npy')
-    y_test = np.load('../data/test_labels.npy')
+    X_train = np.load('data/train_images.npy')
+    y_train = np.load('data/train_labels.npy')
+    X_test = np.load('data/test_images.npy')
+    y_test = np.load('data/test_labels.npy')
 
     tx, ty, vx, vy, tex, tey = train_validation_test(X_train, y_train, X_test, y_test)
 

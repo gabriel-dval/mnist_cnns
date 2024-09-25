@@ -29,7 +29,7 @@ macOS command line
 
     python mnist_fc.py
 
-When running the notebook, please make sure you input the proper data path and keep the images associated
+When running the notebook or the scripts, please make sure you input the proper data path and keep the images associated
 with the notebook in its directory. 
 
 
