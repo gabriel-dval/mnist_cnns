@@ -242,7 +242,7 @@ def cross_val_data(X_train, y_train, mask_train, cross_val_nb):
         mask_train_fold = np.concatenate((masks[:start_val], masks[end_val:]), axis=0)
         
         # Append the fold to the list as a tuple (X_train_fold, y_train_fold, X_val_fold, y_val_fold)
-        folds.append((X_train_fold, y_train_fold, X_val_fold, y_val_fold))
+        folds.append((X_train_fold, y_train_fold, mask_train_fold, X_val_fold, y_val_fold, mask_val_fold))
     
     return folds
 
@@ -577,7 +577,7 @@ def fit(epochs, X_train, y_train, mask_train, X_val, y_val, mask_val, X_test, y_
     t_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
 
     
-    model = CONV().to(device)
+    model = ResNet().to(device)
 
     # Set optimizer based on model parameters
     lr = LR
@@ -835,7 +835,7 @@ if __name__ == '__main__':
     losses = []
     val_losses = []
     for k in folds:
-        tx, ty, vx, vy = k
+        tx, ty, tm, vx, vy, vm = k
         loss_vector, val_loss_vector = fit(EPOCHS, tx, ty, tm, vx, vy, vm, tex, tey, tem, 
                                        LOSS_FN, None, early_stopping = True)
         losses.append(loss_vector)
@@ -844,14 +844,14 @@ if __name__ == '__main__':
     plt.figure(figsize = (10, 6))
     for i, (l, val) in enumerate(zip(losses, val_losses)):
         colour = np.random.rand(3,)
-        plt.plot(list(range(len(loss_vector))), loss_vector, color = colour, label = f'CV{i+1} training loss')
-        plt.plot(list(range(len(val_loss_vector))), val_loss_vector, color = colour, label = f'CV{i+1} validation loss',
+        plt.plot(list(range(len(l))), l, color = colour, label = f'CV{i+1} training loss')
+        plt.plot(list(range(len(val))), val, color = colour, label = f'CV{i+1} validation loss',
                 linestyle = 'dashed')
     plt.xlabel("Number of epochs")
     plt.ylabel("Loss value")
     plt.title(f'Loss function - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
     plt.legend(loc = 'upper right')
-    plt.savefig(f"../results/Loc_CONVCVLosses_BS{BATCH_SIZE}_LR{LR}.png")
+    plt.savefig(f"results/Loc_ResNetCVLosses_BS{BATCH_SIZE}_LR{LR}.png")
 
 
     # Plots - will plot loss function, confusion matrix and maybe ROC

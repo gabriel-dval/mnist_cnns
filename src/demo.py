@@ -691,8 +691,8 @@ if __name__ == '__main__':
     plt.figure(figsize = (10, 6))
     for i, (l, val) in enumerate(zip(losses, val_losses)):
         colour = np.random.rand(3,)
-        plt.plot(list(range(len(loss_vector))), loss_vector, color = colour, label = f'CV{i+1} training loss')
-        plt.plot(list(range(len(val_loss_vector))), val_loss_vector, color = colour, label = f'CV{i+1} validation loss',
+        plt.plot(list(range(len(l))), l, color = colour, label = f'CV{i+1} training loss')
+        plt.plot(list(range(len(val))), val, color = colour, label = f'CV{i+1} validation loss',
                 linestyle = 'dashed')
     plt.xlabel("Number of epochs")
     plt.ylabel("Loss value")
