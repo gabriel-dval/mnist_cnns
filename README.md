@@ -4,12 +4,13 @@ A short project aiming to train and test multiple CNN architectures on the commo
 
 ## Getting Started
 
-These instructions will give you a copy of the project up and running on
-your local machine for development and testing purposes.
+These instructions will describe the contents of this repo and help navigate the available files. There are 3 python scripts, each encoding a different model (except the localization script, which implements both a convolutional model
+and a ResNet). These are only to to track the changes and development of the models - please view the mnist.ipynb
+notebook for the detailed steps of data analysis and model architectures.
 
 ### Prerequisite packages
 
-To run the following scripts, a few different modules are necessary (see the scripts to see necessary imports). An environment .yml file (mnist.yml) has been provided to if needed. This program was written using Python v3.12.6
+To run the following scripts and notebook, a few different modules are necessary (see the scripts to see necessary imports). An environment .yml file (mnist.yml) has been provided to if needed. This program was written using Python v3.12.6
 
 ### Installing
 
@@ -18,36 +19,19 @@ using this command.
 
 macOS command line
 
-    conda env create -f remc_env.yml
-
-You can equally create a new environment with the three packages if this is 
-simpler.
-
-    conda create -n myenv python=3.12.5 numpy=2.1 matplotlib=3.9.2 tqdm=4.66.5
+    conda env create -f mnist.yml
 
 
-## Running the program
+## Running the scripts/notebooks
 
-The program is run from the command line like any python script. Below is an 
-example with a sequence of length 20 called 'test'. Although most parameters have
-default options, please make sure to input an optimal energy even if it is not 
-known. A cutoff time for each run can equally be passed as argument.
+Each script runs the training for the models; they can be run using the following bash command
 
-Example usage
+macOS command line
 
-    python remc.py HPHPPHHPHPPHPHPH test -5
+    conda env create -f mnist.yml
 
-IMPORTANT - make sure the components.py file is in the same directory as remc.py
-so all necessary modules can be imported. 
-
-The program outputs a results_log.txt file, containing results for each iteration 
-of the simulation, and a FIGURES directory with the final conformation for each run.
-
-### Launch an example proteins
-
-Launch a simulation of protein S1-1
-
-    python remc.py HPHPPHHPHPPHPHHPPHPH S1 -9
+When running the notebooks, please make sure you input the proper data path and keep the images associated
+with the notebook in its directory.
 
 
 ## Authors

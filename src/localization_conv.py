@@ -194,7 +194,7 @@ class LocalizationCustom(Dataset):
 
 # Cross-validation generation --------------------------------------------------------------
 
-def cross_val_data(X_train, y_train, cross_val_nb):
+def cross_val_data(X_train, y_train, mask_train, cross_val_nb):
     '''Function that generates the train, validation and test data for
     the number of folds specified.
 
@@ -204,10 +204,8 @@ def cross_val_data(X_train, y_train, cross_val_nb):
         Training image data.
     y_train : array
         Training labels.
-    X_test : array
+    mask_train : array
         Test image data.
-    y_test : array
-        Test labels.
     cross_val_nb : int
         Number of cross-validation folds.
 
@@ -218,9 +216,10 @@ def cross_val_data(X_train, y_train, cross_val_nb):
         for each cross-validation fold.
     '''
     # Shuffle the entire dataset
-    ns = X_train.shape[0]
+    # Shuffle data set
+    ns =  X_train.shape[0]
     shuffle_index = np.random.permutation(ns)
-    images, labels = X_train[shuffle_index], y_train[shuffle_index]
+    images, labels, masks = X_train[shuffle_index], y_train[shuffle_index], mask_train[shuffle_index]
 
     # Determine the number of samples in each fold
     fold_size = ns // cross_val_nb
@@ -235,10 +234,12 @@ def cross_val_data(X_train, y_train, cross_val_nb):
         
         X_val_fold = images[start_val:end_val]
         y_val_fold = labels[start_val:end_val]
+        mask_val_fold = masks[start_val:end_val]
         
         # Define training set for the current fold (exclude the validation fold)
         X_train_fold = np.concatenate((images[:start_val], images[end_val:]), axis=0)
         y_train_fold = np.concatenate((labels[:start_val], labels[end_val:]), axis=0)
+        mask_train_fold = np.concatenate((masks[:start_val], masks[end_val:]), axis=0)
         
         # Append the fold to the list as a tuple (X_train_fold, y_train_fold, X_val_fold, y_val_fold)
         folds.append((X_train_fold, y_train_fold, X_val_fold, y_val_fold))
@@ -576,7 +577,7 @@ def fit(epochs, X_train, y_train, mask_train, X_val, y_val, mask_val, X_test, y_
     t_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
 
     
-    model = ResNet().to(device)
+    model = CONV().to(device)
 
     # Set optimizer based on model parameters
     lr = LR
@@ -820,32 +821,37 @@ if __name__ == '__main__':
 
     tx, ty, tm, vx, vy, vm, tex, tey, tem = train_validation_test(X_train, y, mask_train)
 
-    loss_vector, val_loss_vector = fit(EPOCHS, tx, ty, tm, vx, vy, vm, tex, tey, tem, 
-                                       LOSS_FN, None, early_stopping = True)
+    # Concatenate train and validation for cross validation
+    tvx = np.concatenate((tx, vx), axis = 0)
+    tvy = np.concatenate((ty, vy))
+    tvm = np.concatenate((tm, vm), axis = 0)
+
     
-    plot_loss_function(None, None, loss_vector, val_loss_vector)
+    folds = cross_val_data(tvx, tvy, tvm, cross_val_nb=6)
 
 
-    # Fit model
-    # losses = []
-    # val_losses = []
-    # for k in folds:
-    #     tx, ty, vx, vy = k
-    #     loss_vector, val_loss_vector = fit(EPOCHS, tx, ty, vx, vy, tex, tey, LOSS_FN, None, early_stopping = True)
-    #     losses.append(loss_vector)
-    #     val_losses.append(val_loss_vector)
 
-    # plt.figure(figsize = (10, 6))
-    # for i, (l, val) in enumerate(zip(losses, val_losses)):
-    #     colour = np.random.rand(3,)
-    #     plt.plot(list(range(len(loss_vector))), loss_vector, color = colour, label = f'CV{i+1} training loss')
-    #     plt.plot(list(range(len(val_loss_vector))), val_loss_vector, color = colour, label = f'CV{i+1} validation loss',
-    #             linestyle = 'dashed')
-    # plt.xlabel("Number of epochs")
-    # plt.ylabel("Loss value")
-    # plt.title(f'Loss function - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
-    # plt.legend(loc = 'upper right')
-    # plt.savefig(f"../results/CONVCVLosses_BS{BATCH_SIZE}_LR{LR}.png")
+    # Cross val
+    losses = []
+    val_losses = []
+    for k in folds:
+        tx, ty, vx, vy = k
+        loss_vector, val_loss_vector = fit(EPOCHS, tx, ty, tm, vx, vy, vm, tex, tey, tem, 
+                                       LOSS_FN, None, early_stopping = True)
+        losses.append(loss_vector)
+        val_losses.append(val_loss_vector)
+
+    plt.figure(figsize = (10, 6))
+    for i, (l, val) in enumerate(zip(losses, val_losses)):
+        colour = np.random.rand(3,)
+        plt.plot(list(range(len(loss_vector))), loss_vector, color = colour, label = f'CV{i+1} training loss')
+        plt.plot(list(range(len(val_loss_vector))), val_loss_vector, color = colour, label = f'CV{i+1} validation loss',
+                linestyle = 'dashed')
+    plt.xlabel("Number of epochs")
+    plt.ylabel("Loss value")
+    plt.title(f'Loss function - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
+    plt.legend(loc = 'upper right')
+    plt.savefig(f"../results/Loc_CONVCVLosses_BS{BATCH_SIZE}_LR{LR}.png")
 
 
     # Plots - will plot loss function, confusion matrix and maybe ROC
