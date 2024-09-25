@@ -48,36 +48,6 @@ def set_seed(seed = 42):
 
 # Visualise dataset -----------------------------------------------------------------------
 
-def view_images(X_path, y_path):
-    '''Function to view 10 images provided using matplotlib
-
-    Args
-    ---
-    X_path : str
-        Path to images
-    y_path : str
-        Path to labels
-
-    Returns
-    ---
-    Nothing
-    '''
-    # Load images
-    images = np.load(X_path)
-    labels = np.load(y_path)
-
-    # Display them
-    plt.figure(figsize=[10,10])
-    for i in range (9):    # for first 9 images
-        plt.subplot(3, 3, i+1)
-        plt.xticks([])
-        plt.yticks([])
-        plt.grid(False)
-        plt.imshow(images[i], cmap=plt.cm.binary)
-        plt.xlabel(labels[i])
-
-    plt.show()
-
 
 # Plotting functions
 
