@@ -1,6 +1,4 @@
-'''Test script to load data and train CNN models
-
-All models will be implemented using pytorch
+'''Test script to load data and train FC model
 '''
 
 #Import modules
@@ -288,9 +286,7 @@ def cross_val_data(X_train, y_train, cross_val_nb):
 
 
 
-
 # train, validation and test function ------------------------------------------------------
-
 
 def train(model, train_loader, loss_fn, optimizer, epoch):
     '''Train function for the model. To evaluate the training, multiple different
@@ -539,7 +535,6 @@ def test(model, test_loader, loss_fn, epoch, figure_path):
 
 
 # Fit function -----------------------------------------------------------------------------
-
 class EarlyStopping():
     """
     Early stopping to stop the training when the loss does not improve after
@@ -656,7 +651,6 @@ def fit(epochs, X_train, y_train, X_val, y_val, X_test, y_test, loss_fn, save_lo
 
 
 # Models ------------------------------------------------------------------------------------
-
 class Base(nn.Module):
 
     def __init__(self):
@@ -685,25 +679,20 @@ if __name__ == '__main__':
     # Set seed
     set_seed(42)
 
-    # Quick test of the images
-    image_path = 'data'
-
+    # Load images
     X_train = np.load('data/train_images.npy')
     y_train = np.load('data/train_labels.npy')
     X_test = np.load('data/test_images.npy')
     y_test = np.load('data/test_labels.npy')
 
-    # View data
-
+    # View data (commented)
     #view_images('../data/test_images.npy', '../data/test_labels.npy')
-    plot_tsne(X_train, y_train)
+    #plot_tsne(X_train, y_train)
 
+    # Setup train, validation, set
     tx, ty, vx, vy, tex, tey = train_validation_test(X_train, y_train, X_test, y_test)
 
-    folds = cross_val_data(X_train, y_train, 6)
-
     # Computation device
-
     device = ("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Computation device: {device}\n")
 
@@ -715,45 +704,5 @@ if __name__ == '__main__':
     LR = 0.001
     LOSS_FN = nn.CrossEntropyLoss(reduction = 'none')
 
-    
-    
-    
-    # Run Cross validation
-
-    # losses = []
-    # val_losses = []
-    # for k in folds:
-    #     tx, ty, vx, vy = k
-    #     loss_vector, val_loss_vector = fit(EPOCHS, tx, ty, vx, vy, tex, tey, LOSS_FN, None, early_stopping = True)
-    #     losses.append(loss_vector)
-    #     val_losses.append(val_loss_vector)
-
-    # plt.figure(figsize = (10, 6))
-    # for i, (l, val) in enumerate(zip(losses, val_losses)):
-    #     colour = np.random.rand(3,)
-    #     plt.plot(list(range(len(l))), l, color = colour, label = f'CV{i+1} training loss')
-    #     plt.plot(list(range(len(val))), val, color = colour, label = f'CV{i+1} validation loss',
-    #             linestyle = 'dashed')
-    # plt.xlabel("Number of epochs")
-    # plt.ylabel("Loss value")
-    # plt.title(f'Loss function - Epochs : {EPOCHS} ; Batch size : {BATCH_SIZE}; Learning Rate : {LR}')
-    # plt.legend(loc = 'upper right')
-    # plt.savefig(f"../results/CVLosses_BS{BATCH_SIZE}_LR{LR}.png")
-
-
-    # Plots - will plot loss function, confusion matrix and maybe ROC
-    #plot_loss_function('../results', 'Loss', loss_vector, val_loss_vector)
-    
-
-
-
-
-   
-
-    
-
-
-
-
-
-
+    # Run the model
+    loss_vector, val_loss_vector = fit(EPOCHS, tx, ty, vx, vy, tex, tey, LOSS_FN, None, early_stopping = True)
