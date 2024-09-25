@@ -28,10 +28,10 @@ Each script runs the training for the models; they can be run using the followin
 
 macOS command line
 
-    conda env create -f mnist.yml
+    python mnist_fc.py
 
-When running the notebooks, please make sure you input the proper data path and keep the images associated
-with the notebook in its directory.
+When running the notebook, please make sure you input the proper data path and keep the images associated
+with the notebook in its directory. 
 
 
 ## Authors
