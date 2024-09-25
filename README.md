@@ -5,8 +5,7 @@ A short project aiming to train and test multiple CNN architectures on the commo
 ## Getting Started
 
 These instructions will describe the contents of this repo and help navigate the available files. There are 3 python scripts, each encoding a different model (except the localization script, which implements both a convolutional model
-and a ResNet). These are only to to track the changes and development of the models - please view the mnist.ipynb
-notebook for the detailed steps of data analysis and model architectures.
+and a ResNet). These are only to to track the changes and development of the models - please view the PetitProjet_DUVAL.ipynb notebook for the detailed steps of data analysis and model architectures.
 
 ### Prerequisite packages
 
