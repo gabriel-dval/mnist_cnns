@@ -1,4 +1,4 @@
-# mnist_cnns
+# MNIST and Localization dataset classification
 
 A short project aiming to train and test multiple CNN architectures on the commonly used Handwritten MNIST images and another dataset
 
