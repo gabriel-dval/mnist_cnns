@@ -9,7 +9,7 @@ and a ResNet). These are only to to track the changes and development of the mod
 
 ### Prerequisite packages
 
-To run the following scripts and notebook, a few different modules are necessary (see the scripts to see necessary imports). An environment .yml file (mnist.yml) has been provided to if needed. This program was written using Python v3.12.6
+To run the following scripts and notebook, a few different modules are necessary (see the scripts to see necessary imports). An environment .yml file (mnist.yml) has been provided to if needed. This program was written using Python v3.10.
 
 ### Installing
 
@@ -19,6 +19,11 @@ using this command.
 macOS command line
 
     conda env create -f mnist.yml
+
+Or you can install all packages directly
+    
+    conda create -n mnist numpy pandas pytorch tqdm matplotlib seaborn requests scikit-learn scipy
+
 
 
 ## Running the scripts/notebooks
